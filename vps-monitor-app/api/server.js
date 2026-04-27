@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { getContainers } from './services/docker.js';
+import { getContainers, restartContainer, stopContainer, startContainer } from './services/docker.js';
 import { checkWebsites } from './services/http.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -29,6 +29,41 @@ app.get('/api/status', async (req, res) => {
       websites,
       globalStatus: allRunning && allUp ? 'OK' : 'KO',
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.use(express.json());
+
+app.post('/api/container/restart', async (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'name requis' });
+  try {
+    await restartContainer(name);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/container/stop', async (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'name requis' });
+  try {
+    await stopContainer(name);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/container/start', async (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'name requis' });
+  try {
+    await startContainer(name);
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

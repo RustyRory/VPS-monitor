@@ -4,6 +4,9 @@ jest.unstable_mockModule('./services/docker.js', () => ({
   getContainers: jest.fn().mockResolvedValue([
     { name: 'app1', status: 'running', image: 'img', ports: ['3000'], uptime: 'Up 1 hour' },
   ]),
+  restartContainer: jest.fn().mockResolvedValue(),
+  stopContainer: jest.fn().mockResolvedValue(),
+  startContainer: jest.fn().mockResolvedValue(),
 }));
 
 jest.unstable_mockModule('./services/http.js', () => ({

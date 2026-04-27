@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.2.0] — 2026-04-27
+
+### Phase 2 — Monitoring HTTP des applications web
+
+#### Added
+
+- `api/services/http.js` : vérification HTTP des 5 applications web (TP Vue, SaintBarth Volley, Lucky7, College La Boussole, Cinemap)
+- Checks effectués en parallèle avec `Promise.all` via `fetch` natif Node.js 20 avec timeout de 5 secondes (`AbortController`)
+- `redirect: 'manual'` pour accepter les redirections (302) comme `OK` — nécessaire pour les apps avec page de login
+- `globalStatus` prend désormais en compte l'état des sites web en plus des containers
+- Section "Applications web" dans le dashboard avec indicateurs visuels vert/rouge
+- Compteur OK/KO global affiché dans le header
+- Variable d'environnement `BASE_URL` pour configurer l'URL de base des checks HTTP
+- Fichier `.env` pour la configuration locale
+- Migration de CommonJS (`require`) vers ES Modules (`import/export`) sur l'ensemble du projet
+- Configuration Jest adaptée pour l'ESM (`--experimental-vm-modules`, `jest.unstable_mockModule`)
+- Configuration ESLint mise à jour pour l'ESM (`sourceType: 'module'`)
+
+#### Changed
+
+- `GET /api/status` : le champ `websites` est maintenant rempli (vide en 0.1.0)
+- `globalStatus` passe à `KO` si un site web est indisponible, pas uniquement les containers
+- `server.js` : détection du module principal via `import.meta.url` au lieu de `require.main`
+
+---
+
 ## [0.1.0] — 2026-04-27
 
 ### Phase 1 — MVP : API Docker + Frontend minimal
