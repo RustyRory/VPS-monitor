@@ -9,19 +9,27 @@
 <body class="login-body">
   <div class="login-card">
     <h1>VPS Monitor</h1>
-    <form id="login-form">
+    <form id="login-form" novalidate>
       <div id="login-error" class="login-error hidden">Identifiants incorrects</div>
-      <input type="text" id="username" placeholder="Utilisateur" autocomplete="username" required />
-      <input type="password" id="password" placeholder="Mot de passe" autocomplete="current-password" required />
-      <button type="submit">Connexion</button>
+      <label for="username">Utilisateur</label>
+      <input type="text" id="username" placeholder="admin" autocomplete="username" required />
+      <label for="password">Mot de passe</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required />
+      <button type="submit" id="submit-btn">Connexion</button>
+      <a href="/" class="back-link">← Retour</a>
     </form>
   </div>
 
   <script>
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const btn = document.getElementById('submit-btn');
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
+
+      btn.disabled = true;
+      btn.textContent = '...';
+      document.getElementById('login-error').classList.add('hidden');
 
       const res = await fetch('/auth/login', {
         method: 'POST',
@@ -33,6 +41,8 @@
         window.location.href = '/';
       } else {
         document.getElementById('login-error').classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Connexion';
       }
     });
   </script>
