@@ -6,6 +6,12 @@ jest.mock('./services/docker', () => ({
   ]),
 }));
 
+jest.mock('./services/http', () => ({
+  checkWebsites: jest.fn().mockResolvedValue([
+    { name: 'SaintBarth Volley', url: '/saintbarthvolley/', httpCode: 200, status: 'OK' },
+  ]),
+}));
+
 const app = require('./server');
 
 describe('GET /api/status', () => {
