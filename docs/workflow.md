@@ -70,11 +70,161 @@ vps-monitor:
 
 Lancer : `docker-compose up -d vps-monitor`
 
+### Étape 6 — CI/CD : lint, tests et déploiement automatique sur staging
+
+#### Objectif
+
+À chaque push sur la branche `staging`, GitHub Actions doit :
+1. Vérifier la qualité du code (lint)
+2. Lancer les tests
+3. Déployer automatiquement sur le VPS via SSH
+
+#### 6.1 — Mettre en place ESLint
+
+Installer ESLint dans `vps-monitor-app/` :
+
+```bash
+npm install --save-dev eslint @eslint/js
+```
+
+Créer `vps-monitor-app/eslint.config.js` :
+
+```js
+import js from '@eslint/js';
+
+export default [
+  js.configs.recommended,
+  {
+    rules: {
+      'no-unused-vars': 'warn',
+      'no-console': 'off',
+    },
+  },
+];
+```
+
+Ajouter le script dans `package.json` :
+
+```json
+"lint": "eslint api/ public/"
+```
+
+#### 6.2 — Mettre en place les tests
+
+Installer les dépendances de test :
+
+```bash
+npm install --save-dev jest supertest
+```
+
+Créer `vps-monitor-app/api/server.test.js` :
+
+```js
+const request = require('supertest');
+const app = require('./server');
+
+describe('GET /api/status', () => {
+  it('répond 200 avec la structure attendue', async () => {
+    const res = await request(app).get('/api/status');
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('containers');
+    expect(res.body).toHaveProperty('websites');
+    expect(res.body).toHaveProperty('globalStatus');
+  });
+});
+```
+
+> Pour que `supertest` fonctionne, `server.js` doit exporter `app` sans appeler `listen` directement — séparer l'export de app et le démarrage du serveur.
+
+Ajouter le script dans `package.json` :
+
+```json
+"test": "jest"
+```
+
+#### 6.3 — Créer le workflow GitHub Actions
+
+Créer `.github/workflows/staging.yml` à la racine du repo :
+
+```yaml
+name: CI + Deploy staging
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  ci:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: vps-monitor-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: vps-monitor-app
+
+      - name: Lint
+        run: npm run lint
+        working-directory: vps-monitor-app
+
+      - name: Test
+        run: npm test
+        working-directory: vps-monitor-app
+
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    needs: ci
+
+    steps:
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /var/www/VPS-monitor
+            git pull origin staging
+            cd /var/www
+            docker-compose build vps-monitor
+            docker-compose up -d vps-monitor
+```
+
+#### 6.4 — Configurer les secrets GitHub
+
+Dans le repo GitHub → Settings → Secrets and variables → Actions, ajouter :
+
+| Secret | Valeur |
+|---|---|
+| `VPS_HOST` | IP ou domaine du VPS |
+| `VPS_USER` | `rusty` |
+| `VPS_SSH_KEY` | Clé SSH privée (contenu de `~/.ssh/id_rsa`) |
+
+#### 6.5 — Créer la branche staging
+
+```bash
+git checkout -b staging
+git push origin staging
+```
+
+Tout push sur `staging` déclenchera le pipeline. La branche `main` reste la branche stable.
+
 ---
 
 ## Phase 2 — Monitoring HTTP des applications web
 
-### Étape 6 — Créer le service de vérification HTTP
+### Étape 7 — Créer le service de vérification HTTP
 
 - Créer `api/services/http.js` : liste des URLs à vérifier, fonction qui effectue un GET sur chacune avec timeout, retourne nom + URL + code HTTP + statut (OK / DOWN)
 
@@ -88,13 +238,13 @@ URLs à monitorer :
 | College La Boussole | `/collegelaboussole/` |
 | Cinemap | `/cinemap/` |
 
-### Étape 7 — Étendre l'endpoint `/api/status`
+### Étape 8 — Étendre l'endpoint `/api/status`
 
 - Appeler `http.js` en parallèle avec `docker.js`
 - Ajouter le champ `websites` dans la réponse JSON
 - Calculer `globalStatus` : `"OK"` si tout est up, `"DEGRADED"` ou `"KO"` sinon
 
-### Étape 8 — Mettre à jour le frontend
+### Étape 9 — Mettre à jour le frontend
 
 - Ajouter une section "Applications web" dans `index.html`
 - Mettre à jour `app.js` pour afficher les statuts HTTP avec indicateurs visuels (vert/rouge)
@@ -104,20 +254,20 @@ URLs à monitorer :
 
 ## Phase 3 — Actions sur les containers + Sécurité
 
-### Étape 9 — Ajouter les actions Docker
+### Étape 10 — Ajouter les actions Docker
 
 - Ajouter `POST /api/container/restart` dans `server.js` : reçoit `{ "name": "container-name" }`, appelle dockerode pour redémarrer le container
 - Ajouter (optionnel) `POST /api/container/stop` et `POST /api/container/start`
 - Tester chaque action manuellement
 
-### Étape 10 — Ajouter l'authentification
+### Étape 11 — Ajouter l'authentification
 
 - Choisir une méthode simple : variable d'environnement pour login/password, middleware Express qui vérifie un header ou cookie de session
 - Protéger toutes les routes `/api/*` et la page principale
 - Stocker les credentials dans une variable d'environnement (ne pas hardcoder)
 - Mettre à jour le `docker-compose.yml` pour passer les variables d'env
 
-### Étape 11 — Mettre à jour le frontend pour les actions
+### Étape 12 — Mettre à jour le frontend pour les actions
 
 - Ajouter un bouton "Restart" sur chaque carte container
 - Envoyer le POST correspondant au clic, rafraîchir le statut après réponse
@@ -127,7 +277,7 @@ URLs à monitorer :
 
 ## Phase 4 — Intégration Nginx + Évolutions
 
-### Étape 12 — Remplacer la homepage Nginx
+### Étape 13 — Remplacer la homepage Nginx
 
 Modifier la configuration Nginx existante pour rediriger `/` vers le container :
 
@@ -142,30 +292,20 @@ location / {
 
 Recharger Nginx : `nginx -t && nginx -s reload`
 
-### Étape 13 — Tests de non-régression
+### Étape 14 — Tests de non-régression
 
 - Vérifier que toutes les applications existantes sont toujours accessibles via leurs routes (`/saintbarthvolley/`, etc.)
 - Vérifier que la homepage affiche bien le dashboard
 - Simuler un container arrêté et vérifier l'affichage (statut rouge)
 - Simuler un service HTTP down et vérifier l'affichage
 
-### Étape 14 — Évolutions futures (optionnel)
+### Étape 15 — Évolutions futures (optionnel)
 
 À planifier selon les besoins :
 
-- Alertes Discord / email quand un service tombe
+- Alertes email quand un service tombe
 - Historique d'uptime (stockage en fichier ou SQLite)
 - Graphiques CPU / RAM via `dockerode.stats`
 - Logs en temps réel via WebSocket
 - Support multi-serveurs
 
----
-
-## Récapitulatif des livrables par phase
-
-| Phase | Livrable |
-|---|---|
-| 1 | Backend Node.js + Frontend HTML + Dockerfile + intégration docker-compose |
-| 2 | Service HTTP checks + endpoint `/api/status` complet + UI mise à jour |
-| 3 | Actions restart/stop/start + authentification login/password |
-| 4 | Config Nginx + tests + documentation finale |

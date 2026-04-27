@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node api/server.js",
+    "dev": "nodemon api/server.js",
+    "lint": "eslint api/ public/",
+    "test": "jest"
   },
   "keywords": [],
   "author": "",
@@ -13,5 +16,12 @@
   "dependencies": {
     "dockerode": "^5.0.0",
     "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.2.1",
+    "jest": "^30.3.0",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2"
   }
 }
