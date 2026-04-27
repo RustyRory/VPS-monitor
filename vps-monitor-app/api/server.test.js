@@ -1,5 +1,10 @@
 import { jest } from '@jest/globals';
 
+// Définis avant l'import pour que dotenv ne les écrase pas
+process.env.AUTH_USER = 'admin';
+process.env.AUTH_PASS = 'testpass';
+process.env.SESSION_SECRET = 'test-secret';
+
 jest.unstable_mockModule('./services/docker.js', () => ({
   getContainers: jest.fn().mockResolvedValue([
     { name: 'app1', status: 'running', image: 'img', ports: ['3000'], uptime: 'Up 1 hour' },
@@ -18,7 +23,7 @@ jest.unstable_mockModule('./services/http.js', () => ({
 const { default: app } = await import('./server.js');
 const { default: request } = await import('supertest');
 
-const CREDENTIALS = { username: 'admin', password: 'admin' };
+const CREDENTIALS = { username: 'admin', password: 'testpass' };
 
 describe('Auth', () => {
   it('refuse sans session', async () => {
