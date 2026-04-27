@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.3.0] — 2026-04-27
+
+### Phase 3 — Actions Docker + Authentification
+
+#### Added
+
+- `POST /api/container/restart` : redémarre un container par nom
+- `POST /api/container/stop` : arrête un container par nom
+- `POST /api/container/start` : démarre un container arrêté par nom
+- Authentification par session (`express-session`) — login/password via variables d'environnement (`AUTH_USER`, `AUTH_PASS`, `SESSION_SECRET`)
+- `POST /auth/login` : création de session, durée 8h
+- `POST /auth/logout` : destruction de session
+- Middleware `requireAuth` protégeant toutes les routes `/api/*` et la homepage
+- Page de login (`login.html`) avec formulaire et gestion d'erreur
+- Boutons `Restart` / `Stop` sur les cards containers running, `Start` sur les cards exited
+- Désactivation des boutons pendant l'action en cours
+- Redirection automatique vers `/login.html` si la session expire (réponse 401)
+- Bouton "Déconnexion" dans le header
+
+#### Changed
+
+- `app.js` : gestion du 401 sur `fetchStatus` avec redirection vers la page de login
+- `server.js` : `express.static` reste public, toutes les routes API passent par le middleware auth
+
+---
+
 ## [0.2.0] — 2026-04-27
 
 ### Phase 2 — Monitoring HTTP des applications web

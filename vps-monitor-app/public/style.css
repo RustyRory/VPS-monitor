@@ -97,6 +97,51 @@ section {
 
 .dot.ok { background: #4caf50; }
 
+.card-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+}
+
+.card-actions button {
+  flex: 1;
+  padding: 0.3rem 0;
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #aaa;
+  font-family: monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.card-actions button:hover:not(:disabled) {
+  background: #2a2a2a;
+  color: #e0e0e0;
+}
+
+.card-actions button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.logout-btn {
+  margin-left: auto;
+  padding: 0.2rem 0.7rem;
+  background: transparent;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #666;
+  font-family: monospace;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  color: #e0e0e0;
+  border-color: #555;
+}
+
 /* Login */
 .login-body {
   display: flex;

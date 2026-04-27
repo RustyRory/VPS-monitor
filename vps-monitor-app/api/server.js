@@ -8,10 +8,10 @@ import { checkWebsites } from './services/http.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const PORT       = process.env.PORT        || 3000;
-const BASE_URL   = process.env.BASE_URL    || `http://localhost:${PORT}`;
-const AUTH_USER  = process.env.AUTH_USER   || 'admin';
-const AUTH_PASS  = process.env.AUTH_PASS   || 'admin';
+const PORT           = process.env.PORT           || 3000;
+const BASE_URL       = process.env.BASE_URL       || `http://localhost:${PORT}`;
+const AUTH_USER      = process.env.AUTH_USER      || 'admin';
+const AUTH_PASS      = process.env.AUTH_PASS      || 'admin';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'change-me';
 
 const app = express();
@@ -24,7 +24,14 @@ app.use(session({
   cookie: { httpOnly: true, maxAge: 8 * 60 * 60 * 1000 },
 }));
 
-// --- Auth routes (publiques) ---
+// --- Routes publiques ---
+
+app.get('/', (req, res) => {
+  if (req.session.authenticated) {
+    return res.sendFile(join(__dirname, '../public/index.html'));
+  }
+  res.sendFile(join(__dirname, '../public/home.html'));
+});
 
 app.post('/auth/login', (req, res) => {
   const { username, password } = req.body;
@@ -40,28 +47,20 @@ app.post('/auth/logout', (req, res) => {
   res.json({ ok: true });
 });
 
-// --- Middleware auth ---
+// Fichiers statiques (style.css, app.js, login.html, home.html…)
+// index.html n'est pas accessible directement — servi uniquement via GET /
+app.use(express.static(join(__dirname, '../public')));
+
+// --- Middleware auth pour l'API ---
 
 function requireAuth(req, res, next) {
   if (req.session.authenticated) return next();
-  if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Non authentifié' });
-  res.redirect('/login.html');
+  res.status(401).json({ error: 'Non authentifié' });
 }
 
-// Fichiers statiques publics (login.html, style.css)
-app.use(express.static(join(__dirname, '../public')));
+// --- API (protégée) ---
 
-// Toutes les routes suivantes sont protégées
-app.use(requireAuth);
-
-// Redirige / vers index.html (déjà servi en statique, mais protégé via middleware)
-app.get('/', (_req, res) => {
-  res.sendFile(join(__dirname, '../public/index.html'));
-});
-
-// --- API ---
-
-app.get('/api/status', async (_req, res) => {
+app.get('/api/status', requireAuth, async (_req, res) => {
   try {
     const [containers, websites] = await Promise.all([
       getContainers(),
@@ -81,7 +80,7 @@ app.get('/api/status', async (_req, res) => {
   }
 });
 
-app.post('/api/container/restart', async (req, res) => {
+app.post('/api/container/restart', requireAuth, async (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: 'name requis' });
   try {
@@ -92,7 +91,7 @@ app.post('/api/container/restart', async (req, res) => {
   }
 });
 
-app.post('/api/container/stop', async (req, res) => {
+app.post('/api/container/stop', requireAuth, async (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: 'name requis' });
   try {
@@ -103,7 +102,7 @@ app.post('/api/container/stop', async (req, res) => {
   }
 });
 
-app.post('/api/container/start', async (req, res) => {
+app.post('/api/container/start', requireAuth, async (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: 'name requis' });
   try {
