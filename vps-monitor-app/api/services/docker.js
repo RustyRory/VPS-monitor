@@ -12,9 +12,9 @@ async function getContainers() {
       name: c.Names[0].replace(/^\//, ''),
       status: c.State,
       image: c.Image,
-      ports: c.Ports.map((p) =>
+      ports: [...new Set(c.Ports.map((p) =>
         p.PublicPort ? `${p.PublicPort}:${p.PrivatePort}` : `${p.PrivatePort}`
-      ),
+      ))],
       uptime: c.Status,
     };
   });
