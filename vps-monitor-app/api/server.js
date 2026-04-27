@@ -1,20 +1,66 @@
 import 'dotenv/config';
 import express from 'express';
+import session from 'express-session';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { getContainers } from './services/docker.js';
+import { getContainers, restartContainer, stopContainer, startContainer } from './services/docker.js';
 import { checkWebsites } from './services/http.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const PORT = process.env.PORT || 3000;
-const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+const PORT           = process.env.PORT           || 3000;
+const BASE_URL       = process.env.BASE_URL       || `http://localhost:${PORT}`;
+const AUTH_USER      = process.env.AUTH_USER      || 'admin';
+const AUTH_PASS      = process.env.AUTH_PASS      || 'admin';
+const SESSION_SECRET = process.env.SESSION_SECRET || 'change-me';
 
 const app = express();
 
+app.use(express.json());
+app.use(session({
+  secret: SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { httpOnly: true, maxAge: 8 * 60 * 60 * 1000 },
+}));
+
+// --- Routes publiques ---
+
+app.get('/', (req, res) => {
+  if (req.session.authenticated) {
+    return res.sendFile(join(__dirname, '../public/index.html'));
+  }
+  res.sendFile(join(__dirname, '../public/home.html'));
+});
+
+app.post('/auth/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username === AUTH_USER && password === AUTH_PASS) {
+    req.session.authenticated = true;
+    return res.json({ ok: true });
+  }
+  res.status(401).json({ error: 'Identifiants incorrects' });
+});
+
+app.post('/auth/logout', (req, res) => {
+  req.session.destroy();
+  res.json({ ok: true });
+});
+
+// Fichiers statiques (style.css, app.js, login.html, home.html…)
+// index.html n'est pas accessible directement — servi uniquement via GET /
 app.use(express.static(join(__dirname, '../public')));
 
-app.get('/api/status', async (req, res) => {
+// --- Middleware auth pour l'API ---
+
+function requireAuth(req, res, next) {
+  if (req.session.authenticated) return next();
+  res.status(401).json({ error: 'Non authentifié' });
+}
+
+// --- API (protégée) ---
+
+app.get('/api/status', requireAuth, async (_req, res) => {
   try {
     const [containers, websites] = await Promise.all([
       getContainers(),
@@ -29,6 +75,39 @@ app.get('/api/status', async (req, res) => {
       websites,
       globalStatus: allRunning && allUp ? 'OK' : 'KO',
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/container/restart', requireAuth, async (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'name requis' });
+  try {
+    await restartContainer(name);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/container/stop', requireAuth, async (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'name requis' });
+  try {
+    await stopContainer(name);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/container/start', requireAuth, async (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'name requis' });
+  try {
+    await startContainer(name);
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
