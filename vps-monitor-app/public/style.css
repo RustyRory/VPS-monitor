@@ -210,3 +210,15 @@ section {
 }
 
 .hidden { display: none; }
+
+.back-link {
+  display: block;
+  font-size: 0.78rem;
+  color: #475569;
+  text-decoration: none;
+  text-align: center;
+}
+
+.back-link:hover {
+  color: #94a3b8;
+}
