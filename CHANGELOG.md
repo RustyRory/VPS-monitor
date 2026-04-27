@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.4.0] — 2026-04-27
+
+### Phase 4 — Intégration Nginx + Tests de non-régression
+
+#### Changed
+
+- Configuration Nginx : suppression de `root /var/www/home` — `location /` proxifie désormais vers `http://127.0.0.1:3020` (vps-monitor)
+- La homepage statique (`/var/www/home/index.html`) est remplacée par l'application dynamique
+- Toutes les routes existantes (`/saintbarthvolley/`, `/lucky7/`, `/cinemap/`, etc.) conservées et non impactées
+
+#### Tests de non-régression validés
+
+- Toutes les applications accessibles via leurs routes Nginx
+- Homepage publique servie par vps-monitor sur `/`
+- Dashboard accessible après login admin
+- Containers `exited` affichés en rouge, containers `running` en vert
+- `globalStatus: OK` après nettoyage des containers anonymes (`docker container prune`)
+
+---
+
 ## [0.3.0] — 2026-04-27
 
 ### Phase 3 — Actions Docker + Authentification

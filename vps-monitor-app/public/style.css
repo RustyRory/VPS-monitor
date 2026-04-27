@@ -1,7 +1,122 @@
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+/* ===================== HOME ===================== */
+
+.home-body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.home-body header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 48px;
+  gap: 0;
+}
+
+.home-body header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #f1f5f9;
+}
+
+.home-body header p {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: #475569;
+  letter-spacing: 0.03em;
+}
+
+.home-body .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  width: 100%;
+  max-width: 760px;
+}
+
+.home-body a.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 24px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  text-decoration: none;
+  color: #e2e8f0;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.home-body a.card:hover {
+  background: #273548;
+  border-color: #4f6a8a;
+  transform: translateY(-2px);
+}
+
+.home-body a.card .label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.home-body a.card .url {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-family: monospace;
+}
+
+.home-body footer {
+  margin-top: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-body footer span {
+  font-size: 0.75rem;
+  color: #334155;
+}
+
+.monitoring-link {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  text-decoration: none;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 0.4rem 1rem;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.monitoring-link:hover {
+  color: #f1f5f9;
+  border-color: #4f6a8a;
+  background: #1e293b;
+}
+
+.github-link {
+  color: #475569;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.github-link:hover {
+  color: #94a3b8;
 }
 
 body {
@@ -158,15 +273,25 @@ section {
   padding: 2rem;
   width: 100%;
   max-width: 320px;
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
 }
 
 .login-card h1 {
   text-align: center;
   font-size: 1.2rem;
   color: #e0e0e0;
+  margin-bottom: 1.5rem;
+}
+
+.login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.login-card label {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.6rem;
 }
 
 .login-card input {
@@ -178,8 +303,6 @@ section {
   color: #e0e0e0;
   font-family: monospace;
   font-size: 0.9rem;
-  display: block;
-  margin-bottom: 0.6rem;
 }
 
 .login-card input:focus {
@@ -187,9 +310,10 @@ section {
   border-color: #555;
 }
 
-.login-card button {
+.login-card button[type="submit"] {
   width: 100%;
-  padding: 0.6rem;
+  padding: 0.65rem;
+  margin-top: 1rem;
   background: #2a2a2a;
   border: 1px solid #444;
   border-radius: 4px;
@@ -197,16 +321,36 @@ section {
   font-family: monospace;
   font-size: 0.9rem;
   cursor: pointer;
+  transition: background 0.15s;
 }
 
-.login-card button:hover {
+.login-card button[type="submit"]:hover:not(:disabled) {
   background: #333;
+}
+
+.login-card button[type="submit"]:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .login-error {
   color: #f44336;
   font-size: 0.82rem;
   text-align: center;
+  margin-bottom: 0.2rem;
 }
 
 .hidden { display: none; }
+
+.back-link {
+  display: block;
+  font-size: 0.78rem;
+  color: #475569;
+  text-decoration: none;
+  text-align: center;
+  margin-top: 0.8rem;
+}
+
+.back-link:hover {
+  color: #94a3b8;
+}
