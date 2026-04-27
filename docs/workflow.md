@@ -70,6 +70,10 @@ vps-monitor:
 
 Lancer : `docker-compose up -d vps-monitor`
 
+### Étape 6 — CI CD
+
+
+
 ---
 
 ## Phase 2 — Monitoring HTTP des applications web

@@ -3,7 +3,9 @@ const path = require('path');
 const { getContainers } = require('./services/docker');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+
+const PORT = process.env.PORT;
+const URI = process.env.URI;
 
 app.use(express.static(path.join(__dirname, '../public')));
 
@@ -23,5 +25,5 @@ app.get('/api/status', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`vps-monitor listening on port ${PORT}`);
+  console.log(`vps-monitor listening on port ${URI}:${PORT}`);
 });
