@@ -6,8 +6,6 @@ async function getContainers() {
   const containers = await docker.listContainers({ all: true });
 
   return containers.map((c) => {
-    const uptimeSeconds = c.Status.match(/Up (\d+)/)?.[1] ?? null;
-
     return {
       name: c.Names[0].replace(/^\//, ''),
       status: c.State,

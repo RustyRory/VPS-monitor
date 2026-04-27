@@ -24,6 +24,10 @@ app.get('/api/status', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`vps-monitor listening on port ${URI}:${PORT}`);
-});
+module.exports = app;
+
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`vps-monitor listening on port ${URI}:${PORT}`);
+  });
+}
