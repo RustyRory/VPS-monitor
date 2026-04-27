@@ -12,8 +12,10 @@
 - Authentification par session (`express-session`) — login/password via variables d'environnement (`AUTH_USER`, `AUTH_PASS`, `SESSION_SECRET`)
 - `POST /auth/login` : création de session, durée 8h
 - `POST /auth/logout` : destruction de session
-- Middleware `requireAuth` protégeant toutes les routes `/api/*` et la homepage
+- Middleware `requireAuth` protégeant toutes les routes `/api/*`
 - Page de login (`login.html`) avec formulaire et gestion d'erreur
+- Page publique `home.html` : liste des 5 applications avec liens directs, lien "Monitoring" discret en footer
+- Routing conditionnel sur `GET /` : affiche `home.html` si non connecté, le dashboard si connecté
 - Boutons `Restart` / `Stop` sur les cards containers running, `Start` sur les cards exited
 - Désactivation des boutons pendant l'action en cours
 - Redirection automatique vers `/login.html` si la session expire (réponse 401)
@@ -22,7 +24,8 @@
 #### Changed
 
 - `app.js` : gestion du 401 sur `fetchStatus` avec redirection vers la page de login
-- `server.js` : `express.static` reste public, toutes les routes API passent par le middleware auth
+- `server.js` : `requireAuth` appliqué uniquement sur les routes `/api/*`, `GET /` sert la page publique ou le dashboard selon la session
+- Tests : variables d'environnement d'auth isolées via `process.env` avant import pour éviter la pollution par le `.env` local
 
 ---
 
