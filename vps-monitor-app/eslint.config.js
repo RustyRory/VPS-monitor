@@ -1,16 +1,18 @@
-const js = require('@eslint/js');
+import js from '@eslint/js';
 
-module.exports = [
+export default [
   js.configs.recommended,
   {
     files: ['api/**/*.js'],
     languageOptions: {
+      sourceType: 'module',
       globals: {
-        require: 'readonly',
-        module: 'readonly',
-        __dirname: 'readonly',
         process: 'readonly',
         console: 'readonly',
+        fetch: 'readonly',
+        AbortController: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
       },
     },
     rules: {
@@ -21,8 +23,8 @@ module.exports = [
   {
     files: ['api/**/*.test.js'],
     languageOptions: {
+      sourceType: 'module',
       globals: {
-        require: 'readonly',
         jest: 'readonly',
         describe: 'readonly',
         it: 'readonly',
