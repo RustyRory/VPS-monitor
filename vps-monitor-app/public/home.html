@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VPS — B3 Dev</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: #f1f5f9;
+    }
+
+    header p {
+      margin-top: 8px;
+      font-size: 0.875rem;
+      color: #64748b;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      width: 100%;
+      max-width: 760px;
+    }
+
+    a.card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 20px 24px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      text-decoration: none;
+      color: #e2e8f0;
+      transition: background 0.15s, border-color 0.15s, transform 0.15s;
+    }
+
+    a.card:hover {
+      background: #273548;
+      border-color: #4f6a8a;
+      transform: translateY(-2px);
+    }
+
+    a.card .label {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    a.card .url {
+      font-size: 0.75rem;
+      color: #64748b;
+      font-family: monospace;
+    }
+
+    footer {
+      margin-top: 48px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    footer span {
+      font-size: 0.75rem;
+      color: #334155;
+    }
+
+    footer a.monitoring-link {
+      font-size: 0.75rem;
+      color: #475569;
+      text-decoration: none;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      padding: 0.3rem 0.8rem;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    footer a.monitoring-link:hover {
+      color: #94a3b8;
+      border-color: #334155;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>B3 Dev — Applications</h1>
+    <p>VPS 78.138.58.95</p>
+  </header>
+
+  <div class="grid">
+    <a class="card" href="/cinemap/">
+      <span class="label">CineMap — TP Laravel</span>
+      <span class="url">/cinemap/</span>
+    </a>
+    <a class="card" href="/collegelaboussole/">
+      <span class="label">College La Boussole</span>
+      <span class="url">/collegelaboussole/</span>
+    </a>
+    <a class="card" href="/saintbarthvolley/">
+      <span class="label">SaintBarth Volley</span>
+      <span class="url">/saintbarthvolley/</span>
+    </a>
+    <a class="card" href="/lucky7/">
+      <span class="label">Lucky7</span>
+      <span class="url">/lucky7/</span>
+    </a>
+    <a class="card" href="/B3dev-TP_VUE/">
+      <span class="label">TP VUE</span>
+      <span class="url">/B3dev-TP_VUE/</span>
+    </a>
+  </div>
+
+  <footer>
+    <span>B3 Dev · 2026</span>
+    <a class="monitoring-link" href="/login.html">Monitoring</a>
+  </footer>
+
+</body>
+</html>

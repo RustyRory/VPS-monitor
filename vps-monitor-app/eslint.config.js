@@ -42,10 +42,11 @@ export default [
         document: 'readonly',
         setInterval: 'readonly',
         console: 'readonly',
+        window: 'readonly',
       },
     },
     rules: {
-      'no-unused-vars': 'warn',
+      'no-unused-vars': ['warn', { varsIgnorePattern: '^(containerAction|logout)$' }],
     },
   },
 ];

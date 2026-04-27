@@ -2,24 +2,60 @@ const REFRESH_INTERVAL = 5000;
 
 async function fetchStatus() {
   const res = await fetch('/api/status');
+  if (res.status === 401) {
+    window.location.href = '/login.html';
+    return null;
+  }
   return res.json();
+}
+
+async function containerAction(action, name) {
+  const btn = document.querySelector(`[data-name="${name}"][data-action="${action}"]`);
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '...';
+  }
+
+  await fetch(`/api/container/${action}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+
+  await refresh();
+}
+
+async function logout() {
+  await fetch('/auth/logout', { method: 'POST' });
+  window.location.href = '/login.html';
 }
 
 function renderContainers(containers) {
   const el = document.getElementById('containers');
-  el.innerHTML = containers.map((c) => `
-    <div class="card">
-      <div class="card-header">
-        <span class="card-name">${c.name}</span>
-        <span class="dot ${c.status}" title="${c.status}"></span>
+  el.innerHTML = containers.map((c) => {
+    const isRunning = c.status === 'running';
+    return `
+      <div class="card">
+        <div class="card-header">
+          <span class="card-name">${c.name}</span>
+          <span class="dot ${c.status}" title="${c.status}"></span>
+        </div>
+        <div class="card-meta">
+          <div>${c.image}</div>
+          <div>${c.uptime}</div>
+          <div>${c.ports.join(', ') || '—'}</div>
+        </div>
+        <div class="card-actions">
+          ${isRunning ? `
+            <button data-name="${c.name}" data-action="restart" onclick="containerAction('restart', '${c.name}')">Restart</button>
+            <button data-name="${c.name}" data-action="stop" onclick="containerAction('stop', '${c.name}')">Stop</button>
+          ` : `
+            <button data-name="${c.name}" data-action="start" onclick="containerAction('start', '${c.name}')">Start</button>
+          `}
+        </div>
       </div>
-      <div class="card-meta">
-        <div>${c.image}</div>
-        <div>${c.uptime}</div>
-        <div>${c.ports.join(', ') || '—'}</div>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function renderWebsites(websites) {
@@ -58,6 +94,7 @@ function renderSummary(containers, websites) {
 async function refresh() {
   try {
     const data = await fetchStatus();
+    if (!data) return;
     renderGlobalStatus(data.globalStatus);
     renderSummary(data.containers, data.websites);
     renderContainers(data.containers);
