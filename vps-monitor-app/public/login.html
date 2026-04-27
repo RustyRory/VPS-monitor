@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VPS Monitor — Login</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="login-body">
+  <div class="login-card">
+    <h1>VPS Monitor</h1>
+    <form id="login-form">
+      <div id="login-error" class="login-error hidden">Identifiants incorrects</div>
+      <input type="text" id="username" placeholder="Utilisateur" autocomplete="username" required />
+      <input type="password" id="password" placeholder="Mot de passe" autocomplete="current-password" required />
+      <button type="submit">Connexion</button>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      const res = await fetch('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (res.ok) {
+        window.location.href = '/';
+      } else {
+        document.getElementById('login-error').classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>
