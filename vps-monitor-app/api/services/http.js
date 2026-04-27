@@ -1,11 +1,11 @@
 const TIMEOUT_MS = 5000;
 
 const WEBSITES = [
-  { name: 'TP Vue',             path: '/B3dev-TP_VUE/' },
-  { name: 'SaintBarth Volley',  path: '/saintbarthvolley/' },
-  { name: 'Lucky7',             path: '/lucky7/' },
+  { name: 'TP Vue',              path: '/B3dev-TP_VUE/' },
+  { name: 'SaintBarth Volley',   path: '/saintbarthvolley/' },
+  { name: 'Lucky7',              path: '/lucky7/' },
   { name: 'College La Boussole', path: '/collegelaboussole/' },
-  { name: 'Cinemap',            path: '/cinemap/' },
+  { name: 'Cinemap',             path: '/cinemap/' },
 ];
 
 async function checkWebsite(baseUrl, site) {
@@ -14,12 +14,12 @@ async function checkWebsite(baseUrl, site) {
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const res = await fetch(url, { signal: controller.signal });
+    const res = await fetch(url, { signal: controller.signal, redirect: 'manual' });
     return {
       name: site.name,
       url: site.path,
       httpCode: res.status,
-      status: res.status === 200 ? 'OK' : 'DOWN',
+      status: res.status < 500 ? 'OK' : 'DOWN',
     };
   } catch {
     return {
@@ -33,8 +33,6 @@ async function checkWebsite(baseUrl, site) {
   }
 }
 
-async function checkWebsites(baseUrl) {
+export async function checkWebsites(baseUrl) {
   return Promise.all(WEBSITES.map((site) => checkWebsite(baseUrl, site)));
 }
-
-module.exports = { checkWebsites };
