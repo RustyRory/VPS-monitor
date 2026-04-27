@@ -16,6 +16,7 @@ header {
   align-items: center;
   gap: 1rem;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
 }
 
 h1 {
@@ -81,3 +82,17 @@ h2 {
   color: #666;
   line-height: 1.6;
 }
+
+.summary {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.ok-count { color: #4caf50; }
+.ko-count { color: #f44336; }
+
+section {
+  margin-bottom: 2.5rem;
+}
+
+.dot.ok { background: #4caf50; }
