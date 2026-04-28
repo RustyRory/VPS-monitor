@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.1] — 2026-04-28
+
+### Phase 4 — Navigation vers les applications depuis le dashboard
+
+#### Added
+
+- Bouton "Ouvrir →" sur chaque card application web du dashboard (connecté) — ouvre l'application dans un nouvel onglet via `target="_blank"`
+- Nouveau style `.card-link` : bouton discret monospace cohérent avec le design du dashboard, avec transition hover
+
+#### Changed
+
+- `home.html` : remplacement de la card CineMap — TP Laravel en première position par QW APP (`/qw-app/`) — CineMap déplacée après Lucky7
+- `home.html` : footer mis à jour — ajout d'un lien Portfolio (`damien-paszkiewicz.vercel.app`) aux côtés du lien GitHub, suppression du label "B3 Dev"
+
+---
+
 ## [0.4.0] — 2026-04-27
 
 ### Phase 4 — Intégration Nginx + Tests de non-régression
