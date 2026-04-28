@@ -70,6 +70,9 @@ function renderWebsites(websites) {
         <div>${w.url}</div>
         <div>HTTP ${w.httpCode ?? 'timeout'}</div>
       </div>
+      <div class="card-actions">
+        <a class="card-link" href="${w.url}" target="_blank" rel="noopener">Ouvrir →</a>
+      </div>
     </div>
   `).join('');
 }

@@ -240,6 +240,26 @@ section {
   cursor: default;
 }
 
+.card-link {
+  flex: 1;
+  padding: 0.3rem 0;
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #aaa;
+  font-family: monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.card-link:hover {
+  background: #2a2a2a;
+  color: #e0e0e0;
+}
+
 .logout-btn {
   margin-left: auto;
   padding: 0.2rem 0.7rem;
