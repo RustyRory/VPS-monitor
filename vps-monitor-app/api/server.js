@@ -119,20 +119,31 @@ app.post('/api/container/start', requireAuth, async (req, res) => {
 
 // --- WebSocket : logs en temps réel ---
 
+const wsTokens = new Map();
+
+app.get('/api/ws-token', requireAuth, (_req, res) => {
+  const token = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+  wsTokens.set(token, Date.now() + 30_000);
+  res.json({ token });
+});
+
 const server = createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 
 server.on('upgrade', (req, socket, head) => {
-  const mockRes = { writeHead: () => {}, end: () => {}, getHeader: () => null, setHeader: () => {} };
-  sessionMiddleware(req, mockRes, () => {
-    if (!req.session.authenticated) {
-      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-      socket.destroy();
-      return;
-    }
-    wss.handleUpgrade(req, socket, head, (ws) => {
-      wss.emit('connection', ws, req);
-    });
+  const url = new URL(req.url, 'http://localhost');
+  const token = url.searchParams.get('token');
+  const expiry = token && wsTokens.get(token);
+
+  if (!expiry || Date.now() > expiry) {
+    socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+    socket.destroy();
+    return;
+  }
+  wsTokens.delete(token);
+
+  wss.handleUpgrade(req, socket, head, (ws) => {
+    wss.emit('connection', ws, req);
   });
 });
 
