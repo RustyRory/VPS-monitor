@@ -25,6 +25,47 @@ async function containerAction(action, name) {
   await refresh();
 }
 
+let activeLogSocket = null;
+
+function showLogs(name) {
+  if (activeLogSocket) {
+    activeLogSocket.close();
+    activeLogSocket = null;
+  }
+
+  const modal = document.getElementById('logs-modal');
+  const title = document.getElementById('logs-title');
+  const content = document.getElementById('logs-content');
+  title.textContent = `Logs — ${name}`;
+  content.textContent = '';
+  modal.classList.remove('hidden');
+
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(`${proto}//${location.host}/ws/logs?name=${encodeURIComponent(name)}&tail=200`);
+  activeLogSocket = ws;
+
+  ws.onmessage = (e) => {
+    content.textContent += e.data;
+    content.scrollTop = content.scrollHeight;
+  };
+
+  ws.onerror = () => {
+    content.textContent += '\n[Erreur WebSocket]';
+  };
+
+  ws.onclose = () => {
+    content.textContent += '\n[Flux terminé]';
+  };
+}
+
+function closeLogs() {
+  if (activeLogSocket) {
+    activeLogSocket.close();
+    activeLogSocket = null;
+  }
+  document.getElementById('logs-modal').classList.add('hidden');
+}
+
 async function logout() {
   await fetch('/auth/logout', { method: 'POST' });
   window.location.href = '/login.html';
@@ -52,6 +93,7 @@ function renderContainers(containers) {
           ` : `
             <button data-name="${c.name}" data-action="start" onclick="containerAction('start', '${c.name}')">Start</button>
           `}
+          <button onclick="showLogs('${c.name}')">Logs</button>
         </div>
       </div>
     `;
