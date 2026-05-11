@@ -123,7 +123,8 @@ const server = createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 
 server.on('upgrade', (req, socket, head) => {
-  sessionMiddleware(req, {}, () => {
+  const mockRes = { writeHead: () => {}, end: () => {}, getHeader: () => null, setHeader: () => {} };
+  sessionMiddleware(req, mockRes, () => {
     if (!req.session.authenticated) {
       socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
       socket.destroy();
