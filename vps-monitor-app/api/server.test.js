@@ -12,6 +12,7 @@ jest.unstable_mockModule('./services/docker.js', () => ({
   restartContainer: jest.fn().mockResolvedValue(),
   stopContainer: jest.fn().mockResolvedValue(),
   startContainer: jest.fn().mockResolvedValue(),
+  streamContainerLogs: jest.fn().mockResolvedValue({ destroy: jest.fn() }),
 }));
 
 jest.unstable_mockModule('./services/http.js', () => ({
