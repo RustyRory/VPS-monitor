@@ -27,7 +27,7 @@ async function containerAction(action, name) {
 
 let activeLogSocket = null;
 
-function showLogs(name) {
+async function showLogs(name) {
   if (activeLogSocket) {
     activeLogSocket.close();
     activeLogSocket = null;
@@ -37,12 +37,20 @@ function showLogs(name) {
   const title = document.getElementById('logs-title');
   const content = document.getElementById('logs-content');
   title.textContent = `Logs — ${name}`;
-  content.textContent = '';
+  content.textContent = 'Connexion…';
   modal.classList.remove('hidden');
 
+  const tokenRes = await fetch('/api/ws-token');
+  if (!tokenRes.ok) {
+    content.textContent = 'Erreur: impossible d\'obtenir un token';
+    return;
+  }
+  const { token } = await tokenRes.json();
+
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const ws = new WebSocket(`${proto}//${location.host}/ws/logs?name=${encodeURIComponent(name)}&tail=200`);
+  const ws = new WebSocket(`${proto}//${location.host}/ws/logs?name=${encodeURIComponent(name)}&tail=200&token=${token}`);
   activeLogSocket = ws;
+  content.textContent = '';
 
   ws.onmessage = (e) => {
     content.textContent += e.data;
