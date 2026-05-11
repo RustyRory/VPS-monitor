@@ -1,4 +1,5 @@
 import Dockerode from 'dockerode';
+import { PassThrough } from 'stream';
 
 const docker = new Dockerode({ socketPath: '/var/run/docker.sock' });
 
@@ -22,6 +23,22 @@ export async function stopContainer(name) {
 export async function startContainer(name) {
   const container = await getContainer(name);
   await container.start();
+}
+
+export async function streamContainerLogs(name, tail, onData, onEnd) {
+  const container = await getContainer(name);
+  const logStream = await container.logs({ stdout: true, stderr: true, tail, follow: true });
+
+  const stdout = new PassThrough();
+  const stderr = new PassThrough();
+  docker.modem.demuxStream(logStream, stdout, stderr);
+
+  stdout.on('data', (chunk) => onData(chunk.toString('utf8')));
+  stderr.on('data', (chunk) => onData(chunk.toString('utf8')));
+  logStream.on('end', onEnd);
+  logStream.on('error', onEnd);
+
+  return logStream;
 }
 
 export async function getContainers() {

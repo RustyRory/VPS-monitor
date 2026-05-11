@@ -299,13 +299,59 @@ Recharger Nginx : `nginx -t && nginx -s reload`
 - Simuler un container arrêté et vérifier l'affichage (statut rouge)
 - Simuler un service HTTP down et vérifier l'affichage
 
-### Étape 15 — Évolutions futures (optionnel)
+### Étape 15 — Logs en temps réel via WebSocket
+
+#### Objectif
+
+Afficher les logs d'un container en temps réel dans une modale, avec streaming continu (équivalent `docker logs --follow`).
+
+#### 15.1 — Installer le package WebSocket
+
+```bash
+npm install ws
+```
+
+#### 15.2 — Mettre à jour `api/services/docker.js`
+
+Ajouter la fonction `streamContainerLogs(name, tail, onData, onEnd)` :
+
+- Appelle `container.logs({ follow: true, tail, stdout: true, stderr: true })`
+- Utilise `docker.modem.demuxStream` + deux `PassThrough` pour séparer stdout/stderr
+- Retourne le stream brut afin que l'appelant puisse le `destroy()` à la déconnexion
+
+#### 15.3 — Mettre à jour `api/server.js`
+
+- Extraire le middleware `session(...)` dans une variable `sessionMiddleware` pour le réutiliser
+- Remplacer `app.listen()` par `http.createServer(app)` + `server.listen()`
+- Créer un `WebSocketServer({ noServer: true })`
+- Écouter l'événement `upgrade` sur le serveur HTTP : parser la session via `sessionMiddleware`, rejeter avec 401 si non authentifié, sinon déléguer à `wss.handleUpgrade`
+- Sur `wss.on('connection')` : lire `name` et `tail` dans l'URL, démarrer `streamContainerLogs`, envoyer chaque chunk via `ws.send()`, détruire le stream Docker à la fermeture du WebSocket
+
+Le chemin d'écoute WebSocket est `/ws/logs?name=<container>&tail=200`.
+
+#### 15.4 — Mettre à jour `public/app.js`
+
+- Remplacer le `fetch` de `showLogs` par une connexion `WebSocket`
+- Construire l'URL : `ws://` ou `wss://` selon le protocole courant
+- Ajouter les messages au `<pre>` au fil des events `onmessage`, avec auto-scroll
+- Stocker le socket dans `activeLogSocket` pour le fermer proprement dans `closeLogs()`
+
+#### 15.5 — Tester
+
+```bash
+# Depuis le VPS
+docker logs <container> --follow   # comportement attendu
+# Dans l'app : cliquer "Logs" → la modale doit streamer en direct
+```
+
+---
+
+### Étape 16 — Évolutions futures
 
 À planifier selon les besoins :
 
 - Alertes email quand un service tombe
 - Historique d'uptime (stockage en fichier ou SQLite)
 - Graphiques CPU / RAM via `dockerode.stats`
-- Logs en temps réel via WebSocket
 - Support multi-serveurs
 

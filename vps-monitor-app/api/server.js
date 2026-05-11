@@ -1,9 +1,11 @@
 import 'dotenv/config';
+import { createServer } from 'http';
 import express from 'express';
 import session from 'express-session';
+import { WebSocketServer } from 'ws';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { getContainers, restartContainer, stopContainer, startContainer } from './services/docker.js';
+import { getContainers, restartContainer, stopContainer, startContainer, streamContainerLogs } from './services/docker.js';
 import { checkWebsites } from './services/http.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -16,13 +18,15 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'change-me';
 
 const app = express();
 
-app.use(express.json());
-app.use(session({
+const sessionMiddleware = session({
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: { httpOnly: true, maxAge: 8 * 60 * 60 * 1000 },
-}));
+});
+
+app.use(express.json());
+app.use(sessionMiddleware);
 
 // --- Routes publiques ---
 
@@ -113,10 +117,55 @@ app.post('/api/container/start', requireAuth, async (req, res) => {
   }
 });
 
+// --- WebSocket : logs en temps réel ---
+
+const server = createServer(app);
+const wss = new WebSocketServer({ noServer: true });
+
+server.on('upgrade', (req, socket, head) => {
+  sessionMiddleware(req, {}, () => {
+    if (!req.session.authenticated) {
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      wss.emit('connection', ws, req);
+    });
+  });
+});
+
+wss.on('connection', (ws, req) => {
+  const url = new URL(req.url, 'http://localhost');
+  const name = url.searchParams.get('name');
+  const tail = parseInt(url.searchParams.get('tail') || '200', 10);
+
+  if (!name) {
+    ws.close(1008, 'name requis');
+    return;
+  }
+
+  let logStream = null;
+
+  streamContainerLogs(name, tail,
+    (data) => { if (ws.readyState === ws.OPEN) ws.send(data); },
+    () => { if (ws.readyState === ws.OPEN) ws.close(); },
+  ).then((stream) => {
+    logStream = stream;
+  }).catch((err) => {
+    if (ws.readyState === ws.OPEN) ws.send(`Erreur: ${err.message}`);
+    ws.close();
+  });
+
+  ws.on('close', () => {
+    if (logStream) logStream.destroy();
+  });
+});
+
 export default app;
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`vps-monitor listening on ${BASE_URL}`);
   });
 }
