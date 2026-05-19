@@ -2,7 +2,7 @@
 
 ## Vue d'ensemble
 
-Le projet est divisé en 4 phases. Chaque phase doit être complète et fonctionnelle avant de passer à la suivante.
+Le projet est divisé en 5 phases. Chaque phase doit être complète et fonctionnelle avant de passer à la suivante.
 
 ---
 
@@ -355,3 +355,395 @@ docker logs <container> --follow   # comportement attendu
 - Graphiques CPU / RAM via `dockerode.stats`
 - Support multi-serveurs
 
+## Phase 5 — GitOps Dashboard
+
+### Contexte & État actuel
+
+### Ton infrastructure
+
+Tu as un VPS Debian 12 (`78.138.58.95`) configuré en **multi-app** :
+- **Nginx** joue le rôle de reverse proxy — il reçoit toutes les requêtes et les redirige vers le bon container selon la route (`/saintbarthvolley/`, `/lucky7/`, etc.)
+- **Docker** fait tourner chaque application dans un container isolé
+- **vps-monitor** tourne sur le port `3020` et est le point d'entrée de `/`
+
+#### Tes deux repos actuels
+
+| Repo | Rôle actuel |
+|------|-------------|
+| `VPS-monitor` | L'application de monitoring |
+| `vps-config` | Les fichiers de configuration de l'infra |
+
+> ⚠️ **Décision prise : fusionner les deux repos en un seul.**
+> `vps-config` sera supprimé. Tout sera dans `VPS-monitor`.
+
+#### Ce qui est déployé aujourd'hui
+
+Uniquement `vps-monitor` (v0.4.2). Les autres apps (SBV, Lucky7, CLB, CineMap, etc.) sont listées dans `vps-config` mais pas encore redéployées après le reset.
+
+#### Le problème que ça résout
+
+Aujourd'hui, pour déployer une app ou modifier une config, tu dois :
+1. SSH dans le VPS
+2. Éditer le fichier à la main
+3. Recharger nginx / relancer docker
+4. Pusher la modif sur GitHub manuellement
+
+Avec la Phase 5, **tout ça se fait depuis le dashboard**, sans terminal.
+
+---
+
+### Fusion des repos — Nouvelle structure
+
+#### Pourquoi fusionner
+
+`vps-config` n'existait que comme sauvegarde des configs. Maintenant que le dashboard *gère* ces configs, les avoir dans deux repos séparés crée de la complexité inutile (deux remotes, deux push, deux pipelines). En fusionnant :
+
+- **Un seul `git clone`** pour tout reconfigurer après un reset VPS
+- **Un seul `git push`** quand le dashboard modifie un fichier
+- **Une seule pipeline CI/CD**
+- **Un seul endroit** à regarder sur GitHub
+
+#### Nouvelle structure du repo `VPS-monitor`
+
+```
+VPS-monitor/
+├── app/                             ← code de vps-monitor (renommé depuis vps-monitor-app/)
+│   ├── api/
+│   │   ├── server.js
+│   │   └── services/
+│   │       ├── docker.js
+│   │       ├── http.js
+│   │       ├── git.js               ← NOUVEAU
+│   │       ├── nginx.js             ← NOUVEAU
+│   │       └── deploy.js            ← NOUVEAU
+│   ├── public/
+│   │   ├── index.html
+│   │   ├── app.js
+│   │   └── style.css
+│   ├── Dockerfile
+│   └── package.json
+├── nginx/
+│   └── sites-enabled/
+│       └── vps                      ← config nginx du VPS
+├── apps/
+│   ├── sbv/
+│   │   └── docker-compose.yml
+│   ├── lucky7/
+│   │   └── docker-compose.yml
+│   ├── clb/
+│   │   └── docker-compose.yml
+│   ├── cinemap/
+│   │   └── docker-compose.yml
+│   └── tp-vue/
+│       └── docker-compose.yml
+├── docker-compose.yml               ← compose racine du VPS
+├── .env.example
+└── README.md
+```
+
+---
+
+### Ce qu'on va construire
+
+#### Vue d'ensemble du dashboard
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   VPS Monitor Dashboard                  │
+│                                                         │
+│  [Containers]  [Sites web]  [Configs]  [Déploiement]    │
+│                               ↑            ↑            │
+│                           NOUVEAU       NOUVEAU         │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### Section 1 — Éditeur de config
+
+Un éditeur de fichiers texte intégré pour modifier directement :
+- La config Nginx (`nginx/sites-enabled/vps`)
+- Les `docker-compose.yml` de chaque app (`apps/*/docker-compose.yml`)
+
+**Flux d'une modification :**
+```
+Tu édites dans le dashboard
+        ↓
+API vps-monitor écrit le fichier sur le disque VPS
+        ↓
+git add → commit → push sur GitHub (VPS-monitor)
+        ↓
+Si nginx modifié : nginx -t && systemctl reload nginx
+        ↓
+Confirmation ✅ dans le dashboard
+```
+
+#### Section 2 — Panneau de déploiement
+
+Un panneau pour gérer le cycle de vie de tes apps sans SSH :
+
+| Action | Ce que ça fait |
+|--------|----------------|
+| **Déployer** | `git clone` le repo de l'app + `docker compose up -d` |
+| **Mettre à jour** | `git pull` + `docker compose up -d --build` |
+| **Stop / Start / Restart** | Déjà existant dans vps-monitor |
+
+---
+
+### Architecture technique
+
+#### Le pattern GitOps
+
+```
+GitHub (VPS-monitor)  ←──── source de vérité unique
+        ↑
+        │ git push (automatique après chaque modif depuis le dashboard)
+        │
+Disque VPS (/var/www/VPS-monitor/)
+        ↑
+        │ lit et écrit les fichiers
+        │
+API vps-monitor (Node.js + Express)
+        ↑
+        │ appels HTTP
+        │
+Dashboard (HTML/JS vanilla)
+```
+
+#### Auth GitHub : Personal Access Token (PAT)
+
+Le VPS doit pouvoir pusher sur `VPS-monitor`. On utilise un **GitHub PAT** :
+
+**Pourquoi PAT plutôt que clé SSH ?**
+- Stocké dans le `.env` → sauvegardé dans `.env.example` sur GitHub
+- Si le VPS est resetté, tu colles le token dans le `.env` et c'est reparti
+- Pas de clé SSH à regénérer et réenregistrer sur GitHub à chaque fois
+
+**Scope nécessaire du token :** `repo` (accès lecture/écriture sur tes repos privés)
+
+#### Nouvelles variables d'environnement
+
+```env
+# .env de vps-monitor (à ajouter)
+GITHUB_TOKEN=ghp_xxxxxxxxxxxx
+GITHUB_USER=RustyRory
+VPSCONFIG_PATH=/var/www/VPS-monitor
+```
+
+#### Nouvelles routes API
+
+```
+GET    /api/config/files           → liste les fichiers éditables
+GET    /api/config/file?path=...   → lit le contenu d'un fichier
+POST   /api/config/file            → écrit + commit + push
+POST   /api/config/nginx/reload    → nginx -t && reload
+
+GET    /api/deploy/apps            → liste les apps (depuis apps/)
+POST   /api/deploy/clone           → git clone une app + docker compose up -d
+POST   /api/deploy/update          → git pull + rebuild
+GET    /api/deploy/status/:app     → statut de déploiement d'une app
+```
+
+---
+
+### Étapes
+
+### Étape 17 — Préparer la fusion des repos (hors code)
+
+#### 17.1 — Restructurer le repo VPS-monitor sur GitHub
+
+```bash
+# 1. Renommer vps-monitor-app/ → app/
+# 2. Créer les dossiers nginx/ et apps/
+# 3. Copier les fichiers de vps-config dans VPS-monitor
+# 4. Committer et pusher
+git add .
+git commit -m "chore: fusion vps-config dans vps-monitor"
+git push
+```
+
+#### 17.2 — Mettre à jour le chemin sur le VPS
+
+```bash
+cd /var/www/vps-monitor
+git pull
+# Vérifier que la structure correspond bien à la nouvelle arborescence
+```
+
+#### 17.3 — Supprimer vps-config
+
+Une fois la fusion vérifiée et fonctionnelle :
+- Archiver ou supprimer le repo `vps-config` sur GitHub
+- Supprimer `/var/www/vps-config` sur le VPS si présent
+
+#### 17.4 — Générer le GitHub PAT
+
+1. GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. Generate new token → scope `repo` coché
+3. Copier le token (il ne s'affiche qu'une fois)
+4. L'ajouter dans le `.env` sur le VPS : `GITHUB_TOKEN=ghp_xxx`
+5. L'ajouter dans `.env.example` : `GITHUB_TOKEN=`
+
+#### 17.5 — Configurer git sur le VPS
+
+```bash
+git config --global user.email "mail"
+git config --global user.name "RustyRory"
+
+# Configurer l'URL remote pour utiliser le token HTTPS
+source /var/www/vps-monitor/.env
+git -C /var/www/vps-monitor remote set-url origin https://${GITHUB_TOKEN}@github.com/RustyRory/vps-monitor.git
+```
+
+---
+
+### Étape 18 — Service git.js
+
+Créer `app/api/services/git.js` :
+
+```javascript
+// Fonctions exposées :
+// - getFileContent(relativePath)            → lit un fichier du repo
+// - writeAndCommit(relativePath, content)   → écrit + git add + commit + push
+// - listEditableFiles()                     → retourne nginx/ et apps/*/docker-compose.yml
+```
+
+Utilise `child_process.exec` pour les commandes git et `fs.readFile` / `fs.writeFile` pour les fichiers.
+
+---
+
+### Étape 19 — Service nginx.js
+
+Créer `app/api/services/nginx.js` :
+
+```javascript
+// Fonctions exposées :
+// - testConfig()   → exécute nginx -t, retourne { ok: true/false, output }
+// - reload()       → exécute systemctl reload nginx
+```
+
+⚠️ Nécessite que le process node puisse exécuter sudo nginx et sudo systemctl.
+À configurer dans `/etc/sudoers` sur le VPS :
+```
+rusty ALL=(ALL) NOPASSWD: /usr/sbin/nginx, /bin/systemctl reload nginx
+```
+
+---
+
+### Étape 20 — Routes API Config
+
+Dans `app/api/server.js`, ajouter les routes `/api/config/*` (protégées par `requireAuth`) :
+
+```
+GET  /api/config/files          → appelle git.listEditableFiles()
+GET  /api/config/file           → appelle git.getFileContent(path)
+POST /api/config/file           → appelle git.writeAndCommit(path, content)
+POST /api/config/nginx/reload   → appelle nginx.testConfig() puis nginx.reload()
+```
+
+---
+
+### Étape 21 — Service deploy.js
+
+Créer `app/api/services/deploy.js` :
+
+```javascript
+// Fonctions exposées :
+// - listApps()           → lit apps/ et retourne la liste avec statut (déployée ou non)
+// - cloneApp(name, url)  → git clone dans /var/www/ + docker compose up -d
+// - updateApp(name)      → git pull + docker compose up -d --build
+// - getAppStatus(name)   → vérifie si le dossier existe + container running
+```
+
+---
+
+### Étape 22 — Routes API Deploy
+
+Dans `server.js`, ajouter les routes `/api/deploy/*` (protégées par `requireAuth`) :
+
+```
+GET  /api/deploy/apps           → appelle deploy.listApps()
+POST /api/deploy/clone          → appelle deploy.cloneApp(name, url)
+POST /api/deploy/update         → appelle deploy.updateApp(name)
+GET  /api/deploy/status/:app    → appelle deploy.getAppStatus(name)
+```
+
+---
+
+### Étape 23 — Frontend : onglet Configs
+
+Dans `index.html` + `app.js` : nouvel onglet "Configs" avec :
+- Liste des fichiers éditables (nginx + docker-compose par app)
+- Clic sur un fichier → modale avec `<textarea>` pré-rempli du contenu
+- Bouton "Sauvegarder" → POST `/api/config/file` → confirmation ✅
+- Si fichier nginx : bouton "Recharger Nginx" → POST `/api/config/nginx/reload`
+
+---
+
+### Étape 24 — Frontend : onglet Déploiement
+
+Dans `index.html` + `app.js` : nouvel onglet "Déploiement" avec :
+- Liste des apps connues (depuis `apps/`)
+- Badge : déployée 🟢 / non déployée ⚪
+- Bouton "Déployer" (si absente) ou "Mettre à jour" (si présente)
+- Champ URL repo GitHub pour les nouvelles apps
+- Output en temps réel via WebSocket (déjà en place)
+
+---
+
+### Étape 25 — Tests end-to-end
+
+- Modifier un `docker-compose.yml` → vérifier le fichier sur le VPS ET le commit sur GitHub
+- Modifier la config nginx → vérifier le reload + que les apps répondent toujours
+- Déployer une app depuis le dashboard → container qui apparaît dans le monitoring
+- Mettre à jour une app → rebuild visible dans les logs
+
+---
+
+### Étape 26 — Mettre à jour le README
+
+Réécrire `README.md` de `VPS-monitor` pour refléter la nouvelle structure et la nouvelle procédure de zéro :
+
+```bash
+# Reconfigurer le VPS de zéro (nouvelle procédure simplifiée)
+
+# 1. Cloner le repo
+git clone https://github.com/RustyRory/VPS-monitor.git /var/www/VPS-monitor
+
+# 2. Configurer le .env
+cp .env.example app/.env
+nano app/.env  # remplir les secrets + GITHUB_TOKEN
+
+# 3. Configurer git avec le token
+cd /var/www/vps-monitor
+git remote set-url origin https://<TOKEN>@github.com/RustyRory/vps-monitor.git
+
+# 4. Configurer Nginx
+sudo cp nginx/sites-enabled/vps /etc/nginx/sites-enabled/vps
+sudo nginx -t && sudo systemctl reload nginx
+
+# 5. Lancer vps-monitor
+docker compose up -d vps-monitor
+
+# 6. Tout le reste se déploie depuis le dashboard ✅
+```
+
+---
+
+### Récapitulatif des fichiers à créer / modifier
+
+| Fichier | Action |
+|---------|--------|
+| `vps-monitor-app/` → `app/` | Renommer |
+| `nginx/sites-enabled/vps` | Créer (depuis vps-config) |
+| `apps/*/docker-compose.yml` | Créer (depuis vps-config) |
+| `app/api/services/git.js` | Créer |
+| `app/api/services/nginx.js` | Créer |
+| `app/api/services/deploy.js` | Créer |
+| `app/api/server.js` | Modifier (nouvelles routes) |
+| `app/public/index.html` | Modifier (nouveaux onglets) |
+| `app/public/app.js` | Modifier (logique nouveaux onglets) |
+| `app/public/style.css` | Modifier (styles éditeur + déploiement) |
+| `.env.example` | Modifier (ajout GITHUB_TOKEN, VPSCONFIG_PATH) |
+| `README.md` | Réécrire |
+| `vps-config` (repo GitHub) | Archiver / supprimer |
+
+---

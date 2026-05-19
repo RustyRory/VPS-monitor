@@ -7,6 +7,9 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { getContainers, restartContainer, stopContainer, startContainer, streamContainerLogs } from './services/docker.js';
 import { checkWebsites } from './services/http.js';
+import { listEditableFiles, getFileContent, writeAndCommit } from './services/git.js';
+import { testConfig, reload as reloadNginx } from './services/nginx.js';
+import { listApps, cloneApp, updateApp, getAppStatus } from './services/deploy.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -114,6 +117,89 @@ app.post('/api/container/start', requireAuth, async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// --- API Config (protégée) ---
+
+app.get('/api/config/files', requireAuth, async (_req, res) => {
+  try {
+    res.json(await listEditableFiles());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/config/file', requireAuth, async (req, res) => {
+  const { path } = req.query;
+  if (!path) return res.status(400).json({ error: 'path requis' });
+  try {
+    res.json({ content: await getFileContent(path) });
+  } catch (err) {
+    res.status(err.message === 'Chemin non autorisé' ? 403 : 500).json({ error: err.message });
+  }
+});
+
+app.post('/api/config/file', requireAuth, async (req, res) => {
+  const { path, content } = req.body;
+  if (!path || content === undefined) return res.status(400).json({ error: 'path et content requis' });
+  try {
+    await writeAndCommit(path, content);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(err.message === 'Chemin non autorisé' ? 403 : 500).json({ error: err.message });
+  }
+});
+
+app.post('/api/config/nginx/reload', requireAuth, async (_req, res) => {
+  try {
+    const test = await testConfig();
+    if (!test.ok) return res.status(422).json({ ok: false, output: test.output });
+    await reloadNginx();
+    res.json({ ok: true, output: test.output });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- API Deploy (protégée) ---
+
+app.get('/api/deploy/apps', requireAuth, async (_req, res) => {
+  try {
+    res.json(await listApps());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/deploy/status/:app', requireAuth, async (req, res) => {
+  try {
+    res.json(await getAppStatus(req.params.app));
+  } catch (err) {
+    res.status(err.message === 'Nom d\'app invalide' ? 400 : 500).json({ error: err.message });
+  }
+});
+
+app.post('/api/deploy/clone', requireAuth, async (req, res) => {
+  const { name, url } = req.body;
+  if (!name || !url) return res.status(400).json({ error: 'name et url requis' });
+  try {
+    await cloneApp(name, url);
+    res.json({ ok: true });
+  } catch (err) {
+    const status = ['Nom d\'app invalide', 'URL invalide'].includes(err.message) ? 400 : 500;
+    res.status(status).json({ error: err.message });
+  }
+});
+
+app.post('/api/deploy/update', requireAuth, async (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'name requis' });
+  try {
+    await updateApp(name);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(err.message === 'Nom d\'app invalide' ? 400 : 500).json({ error: err.message });
   }
 });
 

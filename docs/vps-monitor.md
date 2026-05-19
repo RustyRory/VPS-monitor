@@ -302,3 +302,7 @@ location / {
 ### Phase 4
 
 - Alertes / métriques
+
+### Phase 5
+
+- GitOps

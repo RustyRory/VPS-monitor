@@ -433,3 +433,190 @@ section {
 .back-link:hover {
   color: #94a3b8;
 }
+
+/* ===================== TABS ===================== */
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #2a2a2a;
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  padding: 0.4rem 1rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  color: #666;
+  font-family: monospace;
+  font-size: 0.82rem;
+  cursor: pointer;
+  position: relative;
+  bottom: -1px;
+}
+
+.tab-btn:hover { color: #aaa; }
+
+.tab-btn.active {
+  color: #e0e0e0;
+  border-color: #2a2a2a;
+  background: #0f0f0f;
+}
+
+/* ===================== CONFIGS ===================== */
+
+.file-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.file-item {
+  padding: 0.5rem 0.8rem;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  color: #aaa;
+  cursor: pointer;
+}
+
+.file-item:hover { background: #222; color: #e0e0e0; }
+
+.file-empty {
+  font-size: 0.82rem;
+  color: #444;
+  padding: 0.5rem 0;
+}
+
+.config-modal {
+  max-width: 900px;
+}
+
+.config-content {
+  flex: 1;
+  padding: 1rem;
+  background: #0f0f0f;
+  border: none;
+  border-top: 1px solid #2a2a2a;
+  color: #c0c0c0;
+  font-family: monospace;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+  white-space: pre;
+  overflow: auto;
+  min-height: 360px;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  border-top: 1px solid #2a2a2a;
+  gap: 1rem;
+}
+
+.modal-footer button {
+  padding: 0.3rem 1rem;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-family: monospace;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.modal-footer button:hover { background: #2a2a2a; }
+
+#config-save-status {
+  font-size: 0.78rem;
+  color: #888;
+  white-space: pre-wrap;
+}
+
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#nginx-reload-btn {
+  padding: 0.2rem 0.7rem;
+  background: #1a2a1a;
+  border: 1px solid #2a4a2a;
+  border-radius: 4px;
+  color: #4caf50;
+  font-family: monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+#nginx-reload-btn:hover { background: #223322; }
+
+/* ===================== DEPLOY ===================== */
+
+.deploy-badge {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.deploy-badge.running { background: #1a3a1a; color: #4caf50; }
+.deploy-badge.stopped { background: #3a2a00; color: #ffc107; }
+.deploy-badge.absent  { background: #222; color: #555; }
+
+.clone-form {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #2a2a2a;
+}
+
+.clone-inputs {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.clone-inputs input {
+  flex: 1;
+  min-width: 180px;
+  padding: 0.4rem 0.7rem;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-family: monospace;
+  font-size: 0.82rem;
+}
+
+.clone-inputs input:focus { outline: none; border-color: #555; }
+
+.clone-inputs button {
+  padding: 0.4rem 1rem;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-family: monospace;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.clone-inputs button:hover { background: #2a2a2a; }
+
+.clone-status {
+  margin-top: 0.6rem;
+  font-size: 0.8rem;
+  color: #888;
+  white-space: pre-wrap;
+}
