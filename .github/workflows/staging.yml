@@ -21,4 +21,5 @@ jobs:
             cd /var/www/vps-monitor
             git pull origin staging
             docker compose -f deployment/docker-compose.yml build
+            docker rm -f vps-monitor || true
             docker compose -f deployment/docker-compose.yml up -d --remove-orphans
