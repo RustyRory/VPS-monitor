@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node api/server.js",
     "dev": "nodemon api/server.js",
-    "lint": "eslint api/public/",
+    "lint": "eslint api public",
     "test": "node --experimental-vm-modules node_modules/.bin/jest"
   },
   "jest": {
