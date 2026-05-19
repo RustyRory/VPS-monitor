@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.4.2] — 2026-05-19
+
+### Phase 4 — Logs en temps réel via WebSocket
+
+#### Added
+
+- Dépendance `ws` (v8) : serveur WebSocket monté sur le serveur HTTP Express via `noServer: true`
+- `GET /api/ws-token` (authentifié) : génère un token à usage unique (TTL 30 s) pour l'upgrade WebSocket — évite d'exposer la session cookie sur la connexion WS
+- `streamContainerLogs(name, tail, onData, onEnd)` dans `docker.js` : stream Docker `follow: true` avec démultiplexage stdout/stderr via `modem.demuxStream` + `PassThrough`
+- Gestionnaire `server.on('upgrade', ...)` : valide et consomme le token one-shot avant d'accepter la connexion WebSocket (401 + `socket.destroy()` si invalide ou expiré)
+- Modal "Logs" dans le dashboard : bouton "Logs" sur chaque card container (running et exited), affichage en temps réel dans un `<pre>` avec auto-scroll, fermeture via bouton ✕ ou clic sur l'overlay
+- `showLogs(name)` / `closeLogs()` dans `app.js` : gestion du cycle de vie WebSocket (ouverture, réception, erreur, fermeture propre du stream Docker)
+
+#### Changed
+
+- `server.js` : migration de `app.listen()` vers `http.createServer(app)` + `server.listen()` pour supporter l'upgrade WebSocket
+- `sessionMiddleware` extrait en variable nommée (préparation au partage avec le handler d'upgrade)
+- Section "Applications web" : ajout du bouton "Ouvrir →" sur les cards dans `renderWebsites` (frontend manquant en 0.4.1)
+
+---
+
 ## [0.4.1] — 2026-04-28
 
 ### Phase 4 — Navigation vers les applications depuis le dashboard
