@@ -13,6 +13,7 @@ export default [
         AbortController: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
+        URL: 'readonly',
       },
     },
     rules: {
@@ -43,10 +44,12 @@ export default [
         setInterval: 'readonly',
         console: 'readonly',
         window: 'readonly',
+        location: 'readonly',
+        WebSocket: 'readonly',
       },
     },
     rules: {
-      'no-unused-vars': ['warn', { varsIgnorePattern: '^(containerAction|logout)$' }],
+      'no-unused-vars': ['warn', { varsIgnorePattern: '^(containerAction|logout|showLogs|closeLogs)$' }],
     },
   },
 ];
