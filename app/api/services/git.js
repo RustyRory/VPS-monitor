@@ -30,17 +30,3 @@ export async function writeAndCommit(relativePath, content) {
   await git('push');
 }
 
-export async function listEditableFiles() {
-  const files = [];
-
-  try {
-    const entries = await readdir(join(REPO_ROOT, 'nginx', 'sites-enabled'));
-    for (const entry of entries) {
-      files.push(`nginx/sites-enabled/${entry}`);
-    }
-  } catch {
-    // dossier absent
-  }
-
-  return files;
-}

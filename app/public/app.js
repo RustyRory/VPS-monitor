@@ -143,7 +143,7 @@ async function nginxRemoveApp(path, btn) {
   }
 }
 
-function nginxAddApp() {
+async function nginxAddApp() {
   const path = document.getElementById('nginx-add-path').value.trim();
   const port = parseInt(document.getElementById('nginx-add-port').value, 10);
   const statusEl = document.getElementById('nginx-status');
