@@ -1,0 +1,7 @@
+services:
+  clb:
+    build: /var/www/CollegeLaBoussole
+    container_name: clb
+    restart: unless-stopped
+    ports:
+      - "3003:80"
