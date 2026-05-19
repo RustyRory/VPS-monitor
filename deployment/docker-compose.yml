@@ -1,6 +1,9 @@
+name: vps-monitor
+
 services:
   vps-monitor:
     build: ../app
+    container_name: vps-monitor
     restart: unless-stopped
     ports:
       - "127.0.0.1:3020:3000"
@@ -11,8 +14,10 @@ services:
       - /etc/nginx:/etc/nginx:ro
       - /etc/nginx/sites-enabled:/etc/nginx/sites-enabled
       - /usr/sbin/nginx:/usr/sbin/nginx:ro
-      - /var/run/nginx.pid:/var/run/nginx.pid:ro
-    env_file: ../.env
+      - /run:/run:ro
+    env_file:
+      - path: ../.env
+        required: false
     environment:
       PORT: "3000"
       NGINX_CONFIG: /etc/nginx/sites-enabled/vps
