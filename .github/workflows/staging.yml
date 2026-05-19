@@ -18,8 +18,8 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /var/www/VPS-monitor
+            cd /var/www/vps-monitor
             git pull origin staging
             cd /var/www
-            docker-compose build vps-monitor
-            docker-compose up -d vps-monitor
+            docker compose build vps-monitor
+            docker compose up -d vps-monitor
