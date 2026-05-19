@@ -50,7 +50,7 @@ export default [
       },
     },
     rules: {
-      'no-unused-vars': ['warn', { varsIgnorePattern: '^(containerAction|logout|showLogs|closeLogs|showTab|openConfig|closeConfig|saveConfig|nginxReload|updateDeployApp|promptClone|cloneNewApp)$' }],
+      'no-unused-vars': ['warn', { varsIgnorePattern: '^(containerAction|logout|showLogs|closeLogs|showTab|nginxAddApp|nginxRemoveApp|updateDeployApp|promptClone|cloneNewApp)$' }],
     },
   },
 ];
