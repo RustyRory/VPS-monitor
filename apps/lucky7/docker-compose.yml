@@ -1,0 +1,16 @@
+services:
+  lucky7-backend:
+    build: /var/www/Lucky7/lucky7-app/backend
+    container_name: lucky7-backend
+    restart: unless-stopped
+    env_file:
+      - /var/www/Lucky7/lucky7-app/backend/.env
+
+  lucky7-frontend:
+    build: /var/www/Lucky7/lucky7-app/frontend
+    container_name: lucky7-frontend
+    restart: unless-stopped
+    ports:
+      - "3002:80"
+    depends_on:
+      - lucky7-backend
