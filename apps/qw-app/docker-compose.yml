@@ -1,0 +1,7 @@
+services:
+  qw-app:
+    build: /var/www/qw-app
+    container_name: qw-app
+    restart: unless-stopped
+    ports:
+      - "3006:80"
