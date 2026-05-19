@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VPS Monitor</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>VPS Monitor</h1>
+    <div id="global-status" class="badge">--</div>
+    <div id="summary" class="summary"></div>
+    <button class="logout-btn" onclick="logout()">Déconnexion</button>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" onclick="showTab('monitoring')">Monitoring</button>
+    <button class="tab-btn" onclick="showTab('configs')">Configs</button>
+    <button class="tab-btn" onclick="showTab('deploy')">Déploiement</button>
+  </nav>
+
+  <main>
+    <div id="tab-monitoring" class="tab-panel">
+      <section>
+        <h2>Containers Docker</h2>
+        <div id="containers" class="grid"></div>
+      </section>
+      <section>
+        <h2>Applications web</h2>
+        <div id="websites" class="grid"></div>
+      </section>
+    </div>
+
+    <div id="tab-configs" class="tab-panel hidden">
+      <section>
+        <h2>Fichiers de configuration</h2>
+        <ul id="config-files" class="file-list"></ul>
+      </section>
+    </div>
+
+    <div id="tab-deploy" class="tab-panel hidden">
+      <section>
+        <h2>Applications déployées</h2>
+        <div id="deploy-apps" class="grid"></div>
+        <div class="clone-form">
+          <h2>Déployer une nouvelle app</h2>
+          <div class="clone-inputs">
+            <input id="clone-name" type="text" placeholder="nom (ex: sbv)" />
+            <input id="clone-url" type="text" placeholder="https://github.com/…" />
+            <button onclick="cloneNewApp()">Déployer</button>
+          </div>
+          <div id="clone-status" class="clone-status"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="logs-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeLogs()">
+    <div class="modal">
+      <div class="modal-header">
+        <span id="logs-title"></span>
+        <button class="modal-close" onclick="closeLogs()">✕</button>
+      </div>
+      <pre id="logs-content" class="logs-content"></pre>
+    </div>
+  </div>
+
+  <div id="config-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeConfig()">
+    <div class="modal config-modal">
+      <div class="modal-header">
+        <span id="config-title"></span>
+        <div class="modal-header-actions">
+          <button id="nginx-reload-btn" class="hidden" onclick="nginxReload()">Recharger Nginx</button>
+          <button class="modal-close" onclick="closeConfig()">✕</button>
+        </div>
+      </div>
+      <textarea id="config-content" class="config-content" spellcheck="false"></textarea>
+      <div class="modal-footer">
+        <span id="config-save-status"></span>
+        <button onclick="saveConfig()">Sauvegarder</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
