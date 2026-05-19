@@ -7,8 +7,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { getContainers, restartContainer, stopContainer, startContainer, streamContainerLogs } from './services/docker.js';
 import { checkWebsites } from './services/http.js';
-import { listEditableFiles, getFileContent, writeAndCommit } from './services/git.js';
-import { testConfig, reload as reloadNginx } from './services/nginx.js';
+import { testConfig, reload as reloadNginx, readConfig, writeConfig, parseApps, parseConfigMeta, addApp, removeApp } from './services/nginx.js';
 import { listApps, cloneApp, updateApp, getAppStatus } from './services/deploy.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -120,44 +119,51 @@ app.post('/api/container/start', requireAuth, async (req, res) => {
   }
 });
 
-// --- API Config (protégée) ---
+// --- API Nginx (protégée) ---
 
-app.get('/api/config/files', requireAuth, async (_req, res) => {
+app.get('/api/nginx/apps', requireAuth, async (_req, res) => {
   try {
-    res.json(await listEditableFiles());
+    const content = await readConfig();
+    res.json({ apps: parseApps(content), ...parseConfigMeta(content) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get('/api/config/file', requireAuth, async (req, res) => {
-  const { path } = req.query;
-  if (!path) return res.status(400).json({ error: 'path requis' });
-  try {
-    res.json({ content: await getFileContent(path) });
-  } catch (err) {
-    res.status(err.message === 'Chemin non autorisé' ? 403 : 500).json({ error: err.message });
-  }
-});
+app.post('/api/nginx/apps', requireAuth, async (req, res) => {
+  const { path, port } = req.body;
+  if (!path || !port) return res.status(400).json({ error: 'path et port requis' });
+  if (!/^\/[a-zA-Z0-9][a-zA-Z0-9_\-./]*\/$/.test(path)) return res.status(400).json({ error: `Chemin invalide: ${path}` });
+  if (!Number.isInteger(port) || port < 1 || port > 65535) return res.status(400).json({ error: `Port invalide: ${port}` });
 
-app.post('/api/config/file', requireAuth, async (req, res) => {
-  const { path, content } = req.body;
-  if (!path || content === undefined) return res.status(400).json({ error: 'path et content requis' });
+  let previous;
   try {
-    await writeAndCommit(path, content);
+    previous = await readConfig();
+    await addApp(path, port);
+    const test = await testConfig();
+    if (!test.ok) { await writeConfig(previous); return res.status(422).json({ ok: false, output: test.output }); }
+    await reloadNginx();
     res.json({ ok: true });
   } catch (err) {
-    res.status(err.message === 'Chemin non autorisé' ? 403 : 500).json({ error: err.message });
+    if (previous) try { await writeConfig(previous); } catch { /* ignore */ }
+    res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/config/nginx/reload', requireAuth, async (_req, res) => {
+app.delete('/api/nginx/apps', requireAuth, async (req, res) => {
+  const { path } = req.body;
+  if (!path) return res.status(400).json({ error: 'path requis' });
+
+  let previous;
   try {
+    previous = await readConfig();
+    await removeApp(path);
     const test = await testConfig();
-    if (!test.ok) return res.status(422).json({ ok: false, output: test.output });
+    if (!test.ok) { await writeConfig(previous); return res.status(422).json({ ok: false, output: test.output }); }
     await reloadNginx();
-    res.json({ ok: true, output: test.output });
+    res.json({ ok: true });
   } catch (err) {
+    if (previous) try { await writeConfig(previous); } catch { /* ignore */ }
     res.status(500).json({ error: err.message });
   }
 });

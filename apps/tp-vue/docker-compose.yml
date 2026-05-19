@@ -1,7 +1,0 @@
-services:
-  tp-vue:
-    build: /var/www/B3dev-TP_VUE
-    container_name: tp-vue
-    restart: unless-stopped
-    ports:
-      - "3005:80"

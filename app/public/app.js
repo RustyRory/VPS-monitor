@@ -90,65 +90,88 @@ function showTab(id) {
   if (id === 'deploy') loadDeploy();
 }
 
-// --- Configs ---
+// --- Nginx ---
 
-let currentConfigPath = null;
+let nginxApps = [];
 
 async function loadConfigs() {
-  const res = await fetch('/api/config/files');
+  const res = await fetch('/api/nginx/apps');
   if (res.status === 401) { window.location.href = '/login.html'; return; }
-  const files = await res.json();
-  const el = document.getElementById('config-files');
-  if (!files.length) {
-    el.innerHTML = '<li class="file-empty">Aucun fichier trouvé (dossiers nginx/ et apps/ absents)</li>';
+  const { apps, serverName } = await res.json();
+  nginxApps = apps;
+  document.getElementById('nginx-server-info').textContent = `Serveur : ${serverName}`;
+  renderNginxApps();
+}
+
+function renderNginxApps() {
+  const el = document.getElementById('nginx-apps');
+  if (!nginxApps.length) {
+    el.innerHTML = '<div class="file-empty">Aucune application configurée</div>';
     return;
   }
-  el.innerHTML = files.map((f) => `<li class="file-item" onclick="openConfig('${f}')">${f}</li>`).join('');
+  el.innerHTML = nginxApps.map((a) => `
+    <div class="card">
+      <div class="card-header">
+        <span class="card-name">${a.path}</span>
+        <button class="card-delete" onclick="nginxRemoveApp('${a.path}', this)">✕</button>
+      </div>
+      <div class="card-meta">
+        <div>Port : <strong>${a.port}</strong></div>
+        <div>→ http://127.0.0.1:${a.port}/</div>
+      </div>
+    </div>
+  `).join('');
 }
 
-async function openConfig(path) {
-  currentConfigPath = path;
-  document.getElementById('config-title').textContent = path;
-  document.getElementById('config-save-status').textContent = '';
-  const isNginx = path.startsWith('nginx/');
-  document.getElementById('nginx-reload-btn').classList.toggle('hidden', !isNginx);
-
-  const modal = document.getElementById('config-modal');
-  const textarea = document.getElementById('config-content');
-  textarea.value = 'Chargement…';
-  modal.classList.remove('hidden');
-
-  const res = await fetch(`/api/config/file?path=${encodeURIComponent(path)}`);
-  if (!res.ok) { textarea.value = `Erreur: ${(await res.json()).error}`; return; }
-  textarea.value = (await res.json()).content;
-}
-
-function closeConfig() {
-  document.getElementById('config-modal').classList.add('hidden');
-  currentConfigPath = null;
-}
-
-async function saveConfig() {
-  if (!currentConfigPath) return;
-  const content = document.getElementById('config-content').value;
-  const statusEl = document.getElementById('config-save-status');
-  statusEl.textContent = 'Sauvegarde…';
-
-  const res = await fetch('/api/config/file', {
-    method: 'POST',
+async function nginxRemoveApp(path, btn) {
+  btn.disabled = true;
+  btn.textContent = '…';
+  const statusEl = document.getElementById('nginx-status');
+  const res = await fetch('/api/nginx/apps', {
+    method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: currentConfigPath, content }),
+    body: JSON.stringify({ path }),
   });
   const data = await res.json();
-  statusEl.textContent = res.ok ? '✅ Sauvegardé' : `❌ ${data.error}`;
+  if (res.ok) {
+    statusEl.textContent = '';
+    await loadConfigs();
+  } else {
+    statusEl.textContent = `❌ ${data.output || data.error}`;
+    btn.disabled = false;
+    btn.textContent = '✕';
+  }
 }
 
-async function nginxReload() {
-  const statusEl = document.getElementById('config-save-status');
-  statusEl.textContent = 'Test + rechargement…';
-  const res = await fetch('/api/config/nginx/reload', { method: 'POST' });
+async function nginxAddApp() {
+  const path = document.getElementById('nginx-add-path').value.trim();
+  const port = parseInt(document.getElementById('nginx-add-port').value, 10);
+  const statusEl = document.getElementById('nginx-status');
+
+  if (!path.startsWith('/') || !path.endsWith('/')) {
+    statusEl.textContent = '❌ Le chemin doit commencer et finir par /';
+    return;
+  }
+  if (!port || port < 1 || port > 65535) {
+    statusEl.textContent = '❌ Port invalide';
+    return;
+  }
+
+  statusEl.textContent = 'Ajout en cours…';
+  const res = await fetch('/api/nginx/apps', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path, port }),
+  });
   const data = await res.json();
-  statusEl.textContent = res.ok ? '✅ Nginx rechargé' : `❌ Config invalide:\n${data.output}`;
+  if (res.ok) {
+    document.getElementById('nginx-add-path').value = '';
+    document.getElementById('nginx-add-port').value = '';
+    statusEl.textContent = '✅ App ajoutée';
+    await loadConfigs();
+  } else {
+    statusEl.textContent = `❌ ${data.output || data.error}`;
+  }
 }
 
 // --- Deploy ---

@@ -1,9 +1,0 @@
-services:
-  cinemap:
-    build: /var/www/B3dev-TP_framework_php/cinemap-app
-    container_name: cinemap
-    restart: unless-stopped
-    ports:
-      - "3004:80"
-    env_file:
-      - /var/www/B3dev-TP_framework_php/cinemap-app/.env

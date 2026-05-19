@@ -1,4 +1,4 @@
-import { readdir, access } from 'fs/promises';
+import { readFile, access } from 'fs/promises';
 import { join } from 'path';
 import { execFile as execFileCb } from 'child_process';
 import { promisify } from 'util';
@@ -8,13 +8,29 @@ const execFile = promisify(execFileCb);
 const REPO_ROOT = process.env.VPSCONFIG_PATH || '/var/www/vps-monitor';
 const APPS_ROOT = '/var/www';
 
+async function readRegistry() {
+  const raw = await readFile(join(REPO_ROOT, 'apps.json'), 'utf8');
+  return JSON.parse(raw);
+}
+
 function safeName(name) {
   if (!/^[a-zA-Z0-9_-]+$/.test(name)) throw new Error('Nom d\'app invalide');
   return name;
 }
 
-function compose(appPath, ...args) {
-  return execFile('docker', ['compose', ...args], { cwd: appPath });
+async function getComposeCwd(appPath) {
+  const deploymentPath = join(appPath, 'deployment');
+  try {
+    await access(join(deploymentPath, 'docker-compose.yml'));
+    return deploymentPath;
+  } catch {
+    return appPath;
+  }
+}
+
+async function compose(appPath, ...args) {
+  const cwd = await getComposeCwd(appPath);
+  return execFile('docker', ['compose', ...args], { cwd });
 }
 
 export async function getAppStatus(name) {
@@ -37,8 +53,8 @@ export async function getAppStatus(name) {
 
 export async function listApps() {
   try {
-    const entries = await readdir(join(REPO_ROOT, 'apps'));
-    return Promise.all(entries.map(getAppStatus));
+    const registry = await readRegistry();
+    return Promise.all(registry.map(({ name }) => getAppStatus(name)));
   } catch {
     return [];
   }
