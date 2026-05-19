@@ -1,4 +1,4 @@
-import { readFile, writeFile, readdir } from 'fs/promises';
+import { readFile, writeFile } from 'fs/promises';
 import { join, normalize } from 'path';
 import { execFile as execFileCb } from 'child_process';
 import { promisify } from 'util';
@@ -37,21 +37,6 @@ export async function listEditableFiles() {
     const entries = await readdir(join(REPO_ROOT, 'nginx', 'sites-enabled'));
     for (const entry of entries) {
       files.push(`nginx/sites-enabled/${entry}`);
-    }
-  } catch {
-    // dossier absent
-  }
-
-  try {
-    const apps = await readdir(join(REPO_ROOT, 'apps'));
-    for (const app of apps) {
-      const rel = `apps/${app}/docker-compose.yml`;
-      try {
-        await readFile(join(REPO_ROOT, rel));
-        files.push(rel);
-      } catch {
-        // pas de compose pour cette app
-      }
     }
   } catch {
     // dossier absent

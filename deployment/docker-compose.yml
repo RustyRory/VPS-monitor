@@ -1,0 +1,19 @@
+services:
+  vps-monitor:
+    build: ../app
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3020:3000"
+    pid: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/www:/var/www
+      - /etc/nginx:/etc/nginx:ro
+      - /etc/nginx/sites-enabled:/etc/nginx/sites-enabled
+      - /usr/sbin/nginx:/usr/sbin/nginx:ro
+      - /var/run/nginx.pid:/var/run/nginx.pid:ro
+    env_file: ../.env
+    environment:
+      PORT: "3000"
+      NGINX_CONFIG: /etc/nginx/sites-enabled/vps
+      VPSCONFIG_PATH: /var/www/vps-monitor

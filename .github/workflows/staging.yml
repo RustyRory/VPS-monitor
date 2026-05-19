@@ -20,6 +20,5 @@ jobs:
           script: |
             cd /var/www/vps-monitor
             git pull origin staging
-            cd /var/www
-            docker compose build vps-monitor
-            docker compose up -d vps-monitor
+            docker compose -f deployment/docker-compose.yml build
+            docker compose -f deployment/docker-compose.yml up -d

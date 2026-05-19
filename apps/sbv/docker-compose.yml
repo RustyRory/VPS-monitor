@@ -1,9 +1,0 @@
-services:
-  sbv:
-    build: /var/www/SaintBarthVolley
-    container_name: sbv
-    restart: unless-stopped
-    ports:
-      - "3001:3000"
-    volumes:
-      - /var/www/SaintBarthVolley/public/uploads:/usr/src/app/public/uploads
