@@ -42,6 +42,7 @@ export default [
         fetch: 'readonly',
         document: 'readonly',
         setInterval: 'readonly',
+        setTimeout: 'readonly',
         console: 'readonly',
         window: 'readonly',
         location: 'readonly',
@@ -49,7 +50,7 @@ export default [
       },
     },
     rules: {
-      'no-unused-vars': ['warn', { varsIgnorePattern: '^(containerAction|logout|showLogs|closeLogs)$' }],
+      'no-unused-vars': ['warn', { varsIgnorePattern: '^(containerAction|logout|showLogs|closeLogs|showTab|openConfig|closeConfig|saveConfig|nginxReload|updateDeployApp|promptClone|cloneNewApp)$' }],
     },
   },
 ];

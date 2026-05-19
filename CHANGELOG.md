@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.5.0] — 2026-05-19
+
+### Phase 5 — GitOps Dashboard
+
+#### Added
+
+- `app/api/services/git.js` : service GitOps — `listEditableFiles()` (scan `nginx/sites-enabled/` + `apps/*/docker-compose.yml`), `getFileContent(path)`, `writeAndCommit(path, content)` (écrit + `git add` + `git commit` + `git push`) — utilise `execFile` (pas de shell) + validation path traversal
+- `app/api/services/nginx.js` : `testConfig()` (`sudo nginx -t`, retourne `{ ok, output }`) et `reload()` (`sudo systemctl reload nginx`) — capture stdout + stderr car nginx -t écrit sur stderr même en succès
+- `app/api/services/deploy.js` : `listApps()`, `getAppStatus(name)`, `cloneApp(name, url)`, `updateApp(name)` — détection déployée/running via `docker compose ps --quiet`, `execFile` avec `cwd` pour éviter `-f`, whitelist `[a-zA-Z0-9_-]` sur les noms d'app
+- Routes `/api/config/*` dans `server.js` (protégées `requireAuth`) : `GET /api/config/files`, `GET /api/config/file?path=`, `POST /api/config/file`, `POST /api/config/nginx/reload` (teste avant de recharger, 422 si config invalide)
+- Routes `/api/deploy/*` dans `server.js` (protégées `requireAuth`) : `GET /api/deploy/apps`, `GET /api/deploy/status/:app`, `POST /api/deploy/clone`, `POST /api/deploy/update`
+- Onglet "Configs" dans le dashboard : liste des fichiers éditables, clic → modale textarea pré-remplie, bouton "Sauvegarder" (commit + push automatique), bouton "Recharger Nginx" visible uniquement sur les fichiers `nginx/…`
+- Onglet "Déploiement" dans le dashboard : cards avec badge `running` / `stopped` / `absent`, bouton "Mettre à jour" sur les apps déployées, formulaire "Déployer une nouvelle app" (nom + URL git)
+- Navigation par onglets (Monitoring / Configs / Déploiement) avec chargement lazy des données à l'ouverture de chaque onglet
+
+#### Changed
+
+- `vps-monitor-app/` renommé en `app/` — mise à jour du `docker-compose.yml` et du workflow de déploiement en conséquence
+- Variable d'environnement `VPSCONFIG_PATH` ajoutée (chemin racine du repo sur le VPS, défaut `/var/www/vps-monitor`) — utilisée par `git.js` et `deploy.js`
+- `staging.yml` : chemin de déploiement SSH corrigé (`/var/www/VPS-monitor` → `/var/www/vps-monitor`)
+
+#### Infrastructure (hors code)
+
+- Fusion `vps-config` → `VPS-monitor` : `nginx/sites-enabled/` et `apps/*/docker-compose.yml` désormais versionnés dans ce repo
+- GitHub PAT configuré via `GITHUB_TOKEN` dans `.env` et encodé dans le remote URL pour les push automatiques depuis le VPS
+- Règle `sudoers` ajoutée pour `nginx -t` et `systemctl reload nginx` sans mot de passe
+
+---
+
 ## [0.4.2] — 2026-05-19
 
 ### Phase 4 — Logs en temps réel via WebSocket
