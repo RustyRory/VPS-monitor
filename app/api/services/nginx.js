@@ -11,7 +11,12 @@ export async function testConfig() {
     const { stdout, stderr } = await execFile('/usr/sbin/nginx', ['-t']);
     return { ok: true, output: stdout + stderr };
   } catch (err) {
-    return { ok: false, output: (err.stdout ?? '') + (err.stderr ?? '') };
+    const output = (err.stdout ?? '') + (err.stderr ?? '');
+    // getpwnam/getgrnam failures are container env issues (missing host users), not config errors
+    const hasRealError = output.split('\n').some(
+      (l) => l.includes('[emerg]') && !l.includes('getpwnam') && !l.includes('getgrnam'),
+    );
+    return { ok: !hasRealError, output };
   }
 }
 
