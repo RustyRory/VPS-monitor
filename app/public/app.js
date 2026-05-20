@@ -9,6 +9,16 @@ async function fetchStatus() {
   return res.json();
 }
 
+async function removeContainer(name) {
+  if (!confirm(`Supprimer le container "${name}" ? Cette action est irréversible.`)) return;
+  await fetch('/api/container/remove', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  await refresh();
+}
+
 async function containerAction(action, name) {
   const btn = document.querySelector(`[data-name="${name}"][data-action="${action}"]`);
   if (btn) {
@@ -314,6 +324,7 @@ function renderContainers(containers) {
             <button data-name="${c.name}" data-action="stop" onclick="containerAction('stop', '${c.name}')">Stop</button>
           ` : `
             <button data-name="${c.name}" data-action="start" onclick="containerAction('start', '${c.name}')">Start</button>
+            <button onclick="removeContainer('${c.name}')" style="color:var(--red,#e53e3e)">Supprimer</button>
           `}
           <button onclick="showLogs('${c.name}')">Logs</button>
         </div>

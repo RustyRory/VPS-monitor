@@ -6,7 +6,7 @@ import { WebSocketServer } from 'ws';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readFile, writeFile } from 'fs/promises';
-import { getContainers, restartContainer, stopContainer, startContainer, streamContainerLogs } from './services/docker.js';
+import { getContainers, restartContainer, stopContainer, startContainer, removeContainer, streamContainerLogs } from './services/docker.js';
 import { checkWebsites } from './services/http.js';
 import { testConfig, reload as reloadNginx, readConfig, writeConfig, parseApps, parseConfigMeta, addApp, removeApp } from './services/nginx.js';
 import { listApps, cloneApp, updateApp, deleteApp, getAppStatus } from './services/deploy.js';
@@ -126,6 +126,17 @@ app.post('/api/container/start', requireAuth, async (req, res) => {
   if (!name) return res.status(400).json({ error: 'name requis' });
   try {
     await startContainer(name);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/container/remove', requireAuth, async (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'name requis' });
+  try {
+    await removeContainer(name);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

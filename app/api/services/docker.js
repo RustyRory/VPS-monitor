@@ -25,6 +25,11 @@ export async function startContainer(name) {
   await container.start();
 }
 
+export async function removeContainer(name) {
+  const container = await getContainer(name);
+  await container.remove({ force: false });
+}
+
 export async function streamContainerLogs(name, tail, onData, onEnd) {
   const container = await getContainer(name);
   const logStream = await container.logs({ stdout: true, stderr: true, tail, follow: true });
