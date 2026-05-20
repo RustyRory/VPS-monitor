@@ -1,5 +1,5 @@
-import { readFile, writeFile, access } from 'fs/promises';
-import { join } from 'path';
+import { readFile, writeFile, access, mkdir } from 'fs/promises';
+import { join, dirname } from 'path';
 import { execFile as execFileCb } from 'child_process';
 import { promisify } from 'util';
 
@@ -89,6 +89,43 @@ export async function composeUp(serviceName) {
 
 export async function composeRebuild(serviceName) {
   await execFile('docker', ['compose', '-f', MAIN_COMPOSE, 'up', '-d', '--build', serviceName], { cwd: APPS_ROOT });
+}
+
+const INFRA_COMPOSE_CONTENT = `services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
+`;
+
+export async function ensureInfraInclude() {
+  const INFRA_REL = 'infra/docker-compose.yml';
+  const infraFile = join(APPS_ROOT, INFRA_REL);
+
+  try {
+    await access(infraFile);
+  } catch {
+    await mkdir(dirname(infraFile), { recursive: true });
+    await writeFile(infraFile, INFRA_COMPOSE_CONTENT, 'utf8');
+  }
+
+  const content = await readMainCompose();
+  if (content.includes(INFRA_REL)) return;
+
+  const lines = content.split('\n');
+  const includeIdx = lines.findIndex((l) => /^include:/.test(l));
+
+  if (includeIdx >= 0) {
+    lines.splice(includeIdx + 1, 0, `  - ${INFRA_REL}`);
+  } else {
+    lines.unshift('include:', `  - ${INFRA_REL}`, '');
+  }
+
+  await writeFile(MAIN_COMPOSE, lines.join('\n'), 'utf8');
 }
 
 export async function listIncludes() {

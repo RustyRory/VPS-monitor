@@ -45,7 +45,7 @@ export async function getAppStatus(name) {
 
 export async function listApps() {
   const includes = await listIncludes().catch(() => []);
-  const appNames = includes.map(({ name }) => name).filter((n) => n !== 'vps-monitor');
+  const appNames = includes.map(({ name }) => name).filter((n) => n !== 'vps-monitor' && n !== 'infra');
 
   let registry = [];
   try { registry = await readRegistry(); } catch { /* data/apps.json optionnel */ }

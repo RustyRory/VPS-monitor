@@ -10,7 +10,7 @@ import { getContainers, restartContainer, stopContainer, startContainer, streamC
 import { checkWebsites } from './services/http.js';
 import { testConfig, reload as reloadNginx, readConfig, writeConfig, parseApps, parseConfigMeta, addApp, removeApp } from './services/nginx.js';
 import { listApps, cloneApp, updateApp, deleteApp, getAppStatus } from './services/deploy.js';
-import { composeUp, composeRebuild } from './services/compose.js';
+import { composeUp, composeRebuild, ensureInfraInclude } from './services/compose.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -325,6 +325,10 @@ wss.on('connection', (ws, req) => {
 export default app;
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  ensureInfraInclude()
+    .then(() => composeUp('mongo'))
+    .catch((err) => console.error('[infra] startup error:', err.message));
+
   server.listen(PORT, () => {
     console.log(`vps-monitor listening on ${BASE_URL}`);
   });
