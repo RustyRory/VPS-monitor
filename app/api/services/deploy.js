@@ -2,7 +2,7 @@ import { readFile, writeFile, access } from 'fs/promises';
 import { join } from 'path';
 import { execFile as execFileCb } from 'child_process';
 import { promisify } from 'util';
-import { addInclude, removeInclude, listIncludes, getFirstServiceName, composeUp, composeRebuild, composeDown, composeIsRunning } from './compose.js';
+import { addInclude, removeInclude, listIncludes, getFirstServiceName, getAllServiceNames, composeUp, composeRebuild, composeDown, composeIsRunning } from './compose.js';
 import { rm } from 'fs/promises';
 
 const execFile = promisify(execFileCb);
@@ -80,11 +80,11 @@ export async function deleteApp(name) {
   safeName(name);
   const appPath = join(APPS_ROOT, name);
 
-  const service = await getFirstServiceName(name).catch(() => name);
+  const services = await getAllServiceNames(name).catch(() => [name]);
   const registry = await readRegistry().catch(() => []);
   const meta = registry.find((r) => r.name === name) ?? {};
 
-  await composeDown(service);
+  await Promise.all(services.map((s) => composeDown(s)));
   await removeInclude(name);
 
   const newRegistry = registry.filter((r) => r.name !== name);

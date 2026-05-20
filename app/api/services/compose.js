@@ -69,6 +69,18 @@ export async function getFirstServiceName(name) {
   }
 }
 
+export async function getAllServiceNames(name) {
+  const relPath = await findComposePath(name);
+  try {
+    const content = await readFile(join(APPS_ROOT, relPath), 'utf8');
+    const servicesBlock = content.match(/^services:\s*\n([\s\S]*?)(?=^\S|\s*$)/m)?.[1] ?? '';
+    const matches = [...servicesBlock.matchAll(/^  ([a-zA-Z0-9_-]+):/gm)];
+    return matches.map((m) => m[1]);
+  } catch {
+    return [name];
+  }
+}
+
 export async function composeUp(serviceName) {
   const args = ['compose', '-f', MAIN_COMPOSE, 'up', '-d'];
   if (serviceName) args.push(serviceName);
