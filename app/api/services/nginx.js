@@ -59,11 +59,14 @@ export function parseConfigMeta(content) {
   return { serverName, rootPort };
 }
 
-export async function addApp(path, port) {
+export async function addApp(path, port, stripPrefix = true) {
   const content = await readConfig();
+  const proxyTarget = stripPrefix
+    ? `http://127.0.0.1:${port}/`
+    : `http://127.0.0.1:${port}`;
   const block = `
     location ${path} {
-        proxy_pass http://127.0.0.1:${port}/;
+        proxy_pass ${proxyTarget};
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";

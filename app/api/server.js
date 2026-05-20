@@ -155,7 +155,7 @@ app.get('/api/nginx/apps', requireAuth, async (_req, res) => {
 });
 
 app.post('/api/nginx/apps', requireAuth, async (req, res) => {
-  const { path, port } = req.body;
+  const { path, port, stripPrefix = true } = req.body;
   if (!path || !port) return res.status(400).json({ error: 'path et port requis' });
   if (!/^\/[a-zA-Z0-9][a-zA-Z0-9_\-./]*\/$/.test(path)) return res.status(400).json({ error: `Chemin invalide: ${path}` });
   if (!Number.isInteger(port) || port < 1 || port > 65535) return res.status(400).json({ error: `Port invalide: ${port}` });
@@ -163,7 +163,7 @@ app.post('/api/nginx/apps', requireAuth, async (req, res) => {
   let previous;
   try {
     previous = await readConfig();
-    await addApp(path, port);
+    await addApp(path, port, stripPrefix);
     await reloadNginx();
     res.json({ ok: true });
   } catch (err) {
@@ -231,14 +231,14 @@ app.get('/api/deploy/status/:app', requireAuth, async (req, res) => {
 });
 
 app.post('/api/deploy/clone', requireAuth, async (req, res) => {
-  const { name, url, nginxPath, port } = req.body;
+  const { name, url, nginxPath, port, stripPrefix = true } = req.body;
   if (!name || !url) return res.status(400).json({ error: 'name et url requis' });
   if (nginxPath && !port) return res.status(400).json({ error: 'port requis si nginxPath fourni' });
   try {
     const parsedPort = port ? parseInt(port, 10) : null;
     const service = await cloneApp(name, url, nginxPath || null, parsedPort);
     if (nginxPath && parsedPort) {
-      await addApp(nginxPath, parsedPort);
+      await addApp(nginxPath, parsedPort, stripPrefix);
       await reloadNginx();
     }
     res.json({ ok: true, building: true });
