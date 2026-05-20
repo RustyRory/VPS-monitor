@@ -79,6 +79,13 @@ export async function composeRebuild(serviceName) {
   await execFile('docker', ['compose', '-f', MAIN_COMPOSE, 'up', '-d', '--build', serviceName], { cwd: APPS_ROOT });
 }
 
+export async function listIncludes() {
+  const content = await readMainCompose();
+  return [...content.matchAll(/^\s+- (.+docker-compose\.yml)/gm)]
+    .map((m) => m[1].trim())
+    .map((path) => ({ name: path.split('/')[0], path }));
+}
+
 export async function composeIsRunning(serviceName) {
   try {
     const { stdout } = await execFile('docker', ['compose', '-f', MAIN_COMPOSE, 'ps', '--quiet', serviceName], { cwd: APPS_ROOT });

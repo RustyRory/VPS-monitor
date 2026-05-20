@@ -2,7 +2,7 @@ import { readFile, writeFile, access } from 'fs/promises';
 import { join } from 'path';
 import { execFile as execFileCb } from 'child_process';
 import { promisify } from 'util';
-import { addInclude, getFirstServiceName, composeUp, composeRebuild, composeIsRunning } from './compose.js';
+import { addInclude, listIncludes, getFirstServiceName, composeUp, composeRebuild, composeIsRunning } from './compose.js';
 
 const execFile = promisify(execFileCb);
 
@@ -10,12 +10,12 @@ const REPO_ROOT = process.env.VPSCONFIG_PATH || '/var/www/vps-monitor';
 const APPS_ROOT = process.env.APPS_ROOT || '/var/www';
 
 async function readRegistry() {
-  const raw = await readFile(join(REPO_ROOT, 'apps.json'), 'utf8');
+  const raw = await readFile(join(REPO_ROOT, 'data/apps.json'), 'utf8');
   return JSON.parse(raw);
 }
 
 async function writeRegistry(apps) {
-  await writeFile(join(REPO_ROOT, 'apps.json'), JSON.stringify(apps, null, 2) + '\n', 'utf8');
+  await writeFile(join(REPO_ROOT, 'data/apps.json'), JSON.stringify(apps, null, 2) + '\n', 'utf8');
 }
 
 function safeName(name) {
@@ -43,12 +43,17 @@ export async function getAppStatus(name) {
 }
 
 export async function listApps() {
-  try {
-    const registry = await readRegistry();
-    return Promise.all(registry.map(({ name }) => getAppStatus(name)));
-  } catch {
-    return [];
-  }
+  const includes = await listIncludes().catch(() => []);
+  const appNames = includes.map(({ name }) => name).filter((n) => n !== 'vps-monitor');
+
+  let registry = [];
+  try { registry = await readRegistry(); } catch { /* data/apps.json optionnel */ }
+
+  return Promise.all(appNames.map(async (name) => {
+    const status = await getAppStatus(name);
+    const meta = registry.find((r) => r.name === name) ?? {};
+    return { ...status, url: meta.url ?? null };
+  }));
 }
 
 export async function cloneApp(name, url, nginxPath, nginxPort) {

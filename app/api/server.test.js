@@ -21,6 +21,17 @@ jest.unstable_mockModule('./services/http.js', () => ({
   ]),
 }));
 
+jest.unstable_mockModule('./services/nginx.js', () => ({
+  readConfig: jest.fn().mockResolvedValue(''),
+  parseApps: jest.fn().mockReturnValue([]),
+  parseConfigMeta: jest.fn().mockReturnValue({ serverName: 'localhost', rootPort: 3020 }),
+  writeConfig: jest.fn().mockResolvedValue(),
+  testConfig: jest.fn().mockResolvedValue({ ok: true, output: '' }),
+  reload: jest.fn().mockResolvedValue(),
+  addApp: jest.fn().mockResolvedValue(),
+  removeApp: jest.fn().mockResolvedValue(),
+}));
+
 const { default: app } = await import('./server.js');
 const { default: request } = await import('supertest');
 

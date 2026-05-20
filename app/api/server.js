@@ -5,6 +5,7 @@ import session from 'express-session';
 import { WebSocketServer } from 'ws';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { readFile, writeFile } from 'fs/promises';
 import { getContainers, restartContainer, stopContainer, startContainer, streamContainerLogs } from './services/docker.js';
 import { checkWebsites } from './services/http.js';
 import { testConfig, reload as reloadNginx, readConfig, writeConfig, parseApps, parseConfigMeta, addApp, removeApp } from './services/nginx.js';
@@ -66,11 +67,22 @@ function requireAuth(req, res, next) {
 
 // --- API (protégée) ---
 
+app.get('/api/apps', async (_req, res) => {
+  try {
+    const content = await readConfig();
+    res.json(parseApps(content));
+  } catch {
+    res.json([]);
+  }
+});
+
 app.get('/api/status', requireAuth, async (_req, res) => {
   try {
+    const content = await readConfig();
+    const nginxApps = parseApps(content);
     const [containers, websites] = await Promise.all([
       getContainers(),
-      checkWebsites(BASE_URL),
+      checkWebsites(BASE_URL, nginxApps),
     ]);
 
     const allRunning = containers.every((c) => c.status === 'running');
@@ -165,6 +177,30 @@ app.delete('/api/nginx/apps', requireAuth, async (req, res) => {
   } catch (err) {
     if (previous) try { await writeConfig(previous); } catch { /* ignore */ }
     res.status(500).json({ error: err.message });
+  }
+});
+
+// --- API Data (protégée) ---
+
+const DATA_PATH = join(process.env.VPSCONFIG_PATH || '/var/www/vps-monitor', 'data', 'apps.json');
+
+app.get('/api/data/apps', requireAuth, async (_req, res) => {
+  try {
+    res.json({ content: await readFile(DATA_PATH, 'utf8') });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/data/apps', requireAuth, async (req, res) => {
+  const { content } = req.body;
+  if (content === undefined) return res.status(400).json({ error: 'content requis' });
+  try {
+    JSON.parse(content);
+    await writeFile(DATA_PATH, content, 'utf8');
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(err instanceof SyntaxError ? 400 : 500).json({ error: err.message });
   }
 });
 

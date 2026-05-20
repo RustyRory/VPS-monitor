@@ -561,6 +561,47 @@ section {
 
 #nginx-reload-btn:hover { background: #223322; }
 
+/* ===================== JSON EDITOR ===================== */
+
+.json-editor {
+  width: 100%;
+  min-height: 220px;
+  padding: 0.8rem;
+  background: #0f0f0f;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  color: #c0c0c0;
+  font-family: monospace;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  white-space: pre;
+  overflow: auto;
+}
+
+.json-editor:focus { border-color: #444; }
+
+.json-editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+
+.json-editor-footer button {
+  padding: 0.3rem 1rem;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-family: monospace;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.json-editor-footer button:hover { background: #2a2a2a; }
+
 /* ===================== NGINX CARDS ===================== */
 
 .nginx-meta {

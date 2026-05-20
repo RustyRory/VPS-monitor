@@ -86,8 +86,30 @@ function showTab(id) {
   document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
   document.getElementById(`tab-${id}`).classList.remove('hidden');
   document.querySelector(`.tab-btn[onclick="showTab('${id}')"]`).classList.add('active');
-  if (id === 'configs') loadConfigs();
+  if (id === 'configs') { loadAppsJson(); loadConfigs(); }
   if (id === 'deploy') loadDeploy();
+}
+
+// --- apps.json ---
+
+async function loadAppsJson() {
+  const res = await fetch('/api/data/apps');
+  if (res.status === 401) { window.location.href = '/login.html'; return; }
+  const { content } = await res.json();
+  document.getElementById('apps-json-editor').value = content;
+}
+
+async function saveAppsJson() {
+  const content = document.getElementById('apps-json-editor').value;
+  const statusEl = document.getElementById('apps-json-status');
+  statusEl.textContent = 'Sauvegarde…';
+  const res = await fetch('/api/data/apps', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+  });
+  const data = await res.json();
+  statusEl.textContent = res.ok ? '✅ Sauvegardé' : `❌ ${data.error}`;
 }
 
 // --- Nginx ---

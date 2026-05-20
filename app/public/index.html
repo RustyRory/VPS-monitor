@@ -34,6 +34,14 @@
 
     <div id="tab-configs" class="tab-panel hidden">
       <section>
+        <h2>apps.json</h2>
+        <textarea id="apps-json-editor" class="json-editor" spellcheck="false"></textarea>
+        <div class="json-editor-footer">
+          <span id="apps-json-status" class="clone-status"></span>
+          <button onclick="saveAppsJson()">Sauvegarder</button>
+        </div>
+      </section>
+      <section>
         <h2>Configuration Nginx</h2>
         <p id="nginx-server-info" class="nginx-meta"></p>
         <div id="nginx-apps" class="grid"></div>
