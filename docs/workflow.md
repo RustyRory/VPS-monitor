@@ -749,6 +749,11 @@ Gère le fichier `/var/www/docker-compose.yml` global via des includes Docker Co
 #### `deploy.js` — `deleteApp` ajouté (non prévu)
 En plus des fonctions prévues, `deleteApp` : arrête le container (`composeDown`), retire l'include du compose global, supprime l'entrée dans `apps.json`, supprime le dossier `/var/www/<nom>`, et nettoie le bloc nginx si applicable.
 
+#### Build asynchrone — clone et update non-bloquants
+`cloneApp` et `updateApp` ne lancent plus le build Docker dans leur propre `await`. Ils retournent le nom du service et c'est `server.js` qui déclenche `composeUp` / `composeRebuild` **après avoir envoyé la réponse HTTP**, via `.catch()` pour logger les erreurs en background.
+
+Raison : le build de certaines apps (multi-services, npm install + Vite) dépasse le timeout nginx de 60s → 504 Gateway Timeout côté client. Le dashboard reçoit `{ ok: true, building: true }` immédiatement, et l'app passe à l'état "stopped → running" au fil du build.
+
 #### `apps.json` — registre de métadonnées
 Fichier JSON stockant les métadonnées des apps déployées (URL GitHub, chemin nginx, port). La source de vérité reste le compose global (includes) — `apps.json` enrichit uniquement l'affichage et permet la suppression propre du bloc nginx.
 
@@ -806,6 +811,80 @@ services:
 ```
 
 > Si l'app est un bot Discord (pas de web) : omettre la section `ports` et laisser le champ "Chemin nginx" vide dans le dashboard.
+
+### Apps multi-services (ex : Vue + Express + MongoDB)
+
+Pour les apps avec plusieurs containers, utiliser `depends_on` pour que le démarrage du premier service entraîne le démarrage de tous les autres. Le premier service dans le fichier est celui que vps-monitor utilise (`getFirstServiceName`).
+
+Exemple — `B3dev-TP_VUE` (Vue frontend + Express API + MongoDB) :
+
+```yaml
+services:
+  tp-vue-front:               # ← premier = celui géré par vps-monitor
+    build:
+      context: ../my-project
+      dockerfile: deployment/Dockerfile
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      - tp-vue-api
+
+  tp-vue-api:
+    build:
+      context: ../express-project
+      dockerfile: deployment/Dockerfile
+    ports:
+      - "127.0.0.1:3003:3000"
+    environment:
+      MONGO_URI: mongodb://mongo:27017/madb
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:7
+    volumes:
+      - tp_vue_mongo:/data/db
+
+volumes:
+  tp_vue_mongo:
+```
+
+`docker compose up -d tp-vue-front` démarre automatiquement `tp-vue-api` puis `mongo` (chaîne de `depends_on`).
+
+### Proxy interne pour les apps multi-services
+
+vps-monitor ne crée qu'**un seul bloc nginx** par app (le port déclaré au dashboard). Pour les apps avec une API et/ou WebSocket sur un port différent, la solution est de faire proxy dans le **nginx du container frontend** plutôt que dans le nginx du VPS.
+
+Les containers d'un même `docker-compose.yml` partagent un réseau Docker — ils se joignent par hostname (ex : `tp-vue-api:3000`).
+
+Exemple — `my-project/deployment/nginx.conf` gérant API + Socket.io + SPA :
+
+```nginx
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Proxy API (le préfixe /chemin-app/ est déjà strip par le VPS nginx)
+    location /api/ {
+        proxy_pass http://tp-vue-api:3000/api/;
+    }
+
+    # Proxy Socket.io WebSocket
+    location /socket.io/ {
+        proxy_pass http://tp-vue-api:3000/B3dev-TP_VUE/socket.io/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+Le VPS nginx proxifie `/B3dev-TP_VUE/` → port 8080 (bloc unique géré par vps-monitor). Le container nginx prend en charge le routage interne vers les autres services.
 
 ### Sur le dashboard — onglet Déploiement
 
