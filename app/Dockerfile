@@ -1,6 +1,7 @@
 FROM node:20-alpine
 
-RUN apk add --no-cache git docker-cli docker-cli-compose nginx
+RUN apk add --no-cache git docker-cli docker-cli-compose nginx \
+    && addgroup -S www-data && adduser -S -G www-data www-data
 
 WORKDIR /app
 
