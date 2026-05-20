@@ -227,20 +227,26 @@ function promptClone(name) {
 async function cloneNewApp() {
   const name = document.getElementById('clone-name').value.trim();
   const url = document.getElementById('clone-url').value.trim();
+  const nginxPath = document.getElementById('clone-nginx-path').value.trim() || null;
+  const port = document.getElementById('clone-nginx-port').value.trim() || null;
   const statusEl = document.getElementById('clone-status');
+
   if (!name || !url) { statusEl.textContent = '❌ Nom et URL requis'; return; }
+  if (nginxPath && !port) { statusEl.textContent = '❌ Port requis si chemin nginx renseigné'; return; }
 
   statusEl.textContent = `Déploiement de ${name}…`;
   const res = await fetch('/api/deploy/clone', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, url }),
+    body: JSON.stringify({ name, url, nginxPath, port: port ? parseInt(port, 10) : undefined }),
   });
   const data = await res.json();
   statusEl.textContent = res.ok ? `✅ ${name} déployé` : `❌ ${data.error}`;
   if (res.ok) {
     document.getElementById('clone-name').value = '';
     document.getElementById('clone-url').value = '';
+    document.getElementById('clone-nginx-path').value = '';
+    document.getElementById('clone-nginx-port').value = '';
     loadDeploy();
   }
 }

@@ -1,0 +1,89 @@
+import { readFile, writeFile, access } from 'fs/promises';
+import { join } from 'path';
+import { execFile as execFileCb } from 'child_process';
+import { promisify } from 'util';
+
+const execFile = promisify(execFileCb);
+
+const APPS_ROOT = process.env.APPS_ROOT || '/var/www';
+const MAIN_COMPOSE = join(APPS_ROOT, 'docker-compose.yml');
+
+async function findComposePath(name) {
+  const deployPath = join(APPS_ROOT, name, 'deployment', 'docker-compose.yml');
+  try {
+    await access(deployPath);
+    return `${name}/deployment/docker-compose.yml`;
+  } catch {
+    return `${name}/docker-compose.yml`;
+  }
+}
+
+async function readMainCompose() {
+  try {
+    return await readFile(MAIN_COMPOSE, 'utf8');
+  } catch {
+    return 'include:\n';
+  }
+}
+
+export async function addInclude(name) {
+  const relPath = await findComposePath(name);
+  const content = await readMainCompose();
+
+  if (content.includes(relPath)) return;
+
+  const lines = content.split('\n');
+  let lastIncludeIdx = -1;
+  let inInclude = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (/^include:/.test(lines[i])) { inInclude = true; lastIncludeIdx = i; }
+    else if (inInclude && /^\s+- /.test(lines[i])) { lastIncludeIdx = i; }
+    else if (inInclude && lines[i].trim() && !/^\s/.test(lines[i])) { break; }
+  }
+
+  if (lastIncludeIdx >= 0) {
+    lines.splice(lastIncludeIdx + 1, 0, `  - ${relPath}`);
+  } else {
+    lines.unshift('include:', `  - ${relPath}`, '');
+  }
+
+  await writeFile(MAIN_COMPOSE, lines.join('\n'), 'utf8');
+}
+
+export async function removeInclude(name) {
+  let content;
+  try { content = await readFile(MAIN_COMPOSE, 'utf8'); } catch { return; }
+  const lines = content.split('\n').filter((l) => !new RegExp(`^\\s+- ${name}/`).test(l));
+  await writeFile(MAIN_COMPOSE, lines.join('\n'), 'utf8');
+}
+
+export async function getFirstServiceName(name) {
+  const relPath = await findComposePath(name);
+  try {
+    const content = await readFile(join(APPS_ROOT, relPath), 'utf8');
+    const match = content.match(/^services:\s*\n\s+([a-zA-Z0-9_-]+):/m);
+    return match?.[1] ?? name;
+  } catch {
+    return name;
+  }
+}
+
+export async function composeUp(serviceName) {
+  const args = ['compose', '-f', MAIN_COMPOSE, 'up', '-d'];
+  if (serviceName) args.push(serviceName);
+  await execFile('docker', args, { cwd: APPS_ROOT });
+}
+
+export async function composeRebuild(serviceName) {
+  await execFile('docker', ['compose', '-f', MAIN_COMPOSE, 'up', '-d', '--build', serviceName], { cwd: APPS_ROOT });
+}
+
+export async function composeIsRunning(serviceName) {
+  try {
+    const { stdout } = await execFile('docker', ['compose', '-f', MAIN_COMPOSE, 'ps', '--quiet', serviceName], { cwd: APPS_ROOT });
+    return stdout.trim().length > 0;
+  } catch {
+    return false;
+  }
+}

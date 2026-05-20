@@ -187,10 +187,11 @@ app.get('/api/deploy/status/:app', requireAuth, async (req, res) => {
 });
 
 app.post('/api/deploy/clone', requireAuth, async (req, res) => {
-  const { name, url } = req.body;
+  const { name, url, nginxPath, port } = req.body;
   if (!name || !url) return res.status(400).json({ error: 'name et url requis' });
+  if (nginxPath && !port) return res.status(400).json({ error: 'port requis si nginxPath fourni' });
   try {
-    await cloneApp(name, url);
+    await cloneApp(name, url, nginxPath || null, port ? parseInt(port, 10) : null);
     res.json({ ok: true });
   } catch (err) {
     const status = ['Nom d\'app invalide', 'URL invalide'].includes(err.message) ? 400 : 500;

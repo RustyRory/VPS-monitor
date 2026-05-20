@@ -4,7 +4,7 @@ import { promisify } from 'util';
 
 const execFile = promisify(execFileCb);
 
-const NGINX_CONFIG = process.env.NGINX_CONFIG || '/etc/nginx/sites-enabled/vps';
+const NGINX_CONFIG = process.env.NGINX_CONFIG || '/etc/nginx/sites-available/vps';
 
 export async function testConfig() {
   try {
