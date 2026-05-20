@@ -9,7 +9,7 @@ import { readFile, writeFile } from 'fs/promises';
 import { getContainers, restartContainer, stopContainer, startContainer, streamContainerLogs } from './services/docker.js';
 import { checkWebsites } from './services/http.js';
 import { testConfig, reload as reloadNginx, readConfig, writeConfig, parseApps, parseConfigMeta, addApp, removeApp } from './services/nginx.js';
-import { listApps, cloneApp, updateApp, getAppStatus } from './services/deploy.js';
+import { listApps, cloneApp, updateApp, deleteApp, getAppStatus } from './services/deploy.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -240,6 +240,24 @@ app.post('/api/deploy/update', requireAuth, async (req, res) => {
   if (!name) return res.status(400).json({ error: 'name requis' });
   try {
     await updateApp(name);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(err.message === 'Nom d\'app invalide' ? 400 : 500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/deploy/apps', requireAuth, async (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'name requis' });
+  try {
+    const meta = await deleteApp(name);
+    if (meta.nginxPath) {
+      const previous = await readConfig();
+      await removeApp(meta.nginxPath);
+      const test = await testConfig();
+      if (!test.ok) { await writeConfig(previous); }
+      else { await reloadNginx(); }
+    }
     res.json({ ok: true });
   } catch (err) {
     res.status(err.message === 'Nom d\'app invalide' ? 400 : 500).json({ error: err.message });

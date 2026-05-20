@@ -2,7 +2,8 @@ import { readFile, writeFile, access } from 'fs/promises';
 import { join } from 'path';
 import { execFile as execFileCb } from 'child_process';
 import { promisify } from 'util';
-import { addInclude, listIncludes, getFirstServiceName, composeUp, composeRebuild, composeIsRunning } from './compose.js';
+import { addInclude, removeInclude, listIncludes, getFirstServiceName, composeUp, composeRebuild, composeDown, composeIsRunning } from './compose.js';
+import { rm } from 'fs/promises';
 
 const execFile = promisify(execFileCb);
 
@@ -73,6 +74,25 @@ export async function cloneApp(name, url, nginxPath, nginxPort) {
 
   await addInclude(name);
   await composeUp(service);
+}
+
+export async function deleteApp(name) {
+  safeName(name);
+  const appPath = join(APPS_ROOT, name);
+
+  const service = await getFirstServiceName(name).catch(() => name);
+  const registry = await readRegistry().catch(() => []);
+  const meta = registry.find((r) => r.name === name) ?? {};
+
+  await composeDown(service);
+  await removeInclude(name);
+
+  const newRegistry = registry.filter((r) => r.name !== name);
+  await writeRegistry(newRegistry);
+
+  await rm(appPath, { recursive: true, force: true });
+
+  return meta;
 }
 
 export async function updateApp(name) {

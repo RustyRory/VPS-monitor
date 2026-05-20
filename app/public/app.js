@@ -217,6 +217,7 @@ function renderDeployApps(apps) {
         <span class="deploy-badge ${a.deployed ? (a.running ? 'running' : 'stopped') : 'absent'}">
           ${a.deployed ? (a.running ? 'running' : 'stopped') : 'absent'}
         </span>
+        ${a.deployed ? `<button class="card-delete" onclick="deleteDeployApp('${a.name}', this)">✕</button>` : ''}
       </div>
       <div class="card-actions">
         ${a.deployed
@@ -226,6 +227,25 @@ function renderDeployApps(apps) {
       </div>
     </div>
   `).join('');
+}
+
+async function deleteDeployApp(name, btn) {
+  if (!confirm(`Supprimer "${name}" ? Cette action est irréversible (container arrêté, dossier supprimé).`)) return;
+  btn.disabled = true;
+  btn.textContent = '…';
+  const res = await fetch('/api/deploy/apps', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  if (res.ok) {
+    setTimeout(() => loadDeploy(), 500);
+  } else {
+    const data = await res.json();
+    alert(`❌ ${data.error}`);
+    btn.disabled = false;
+    btn.textContent = '✕';
+  }
 }
 
 async function updateDeployApp(name, btn) {

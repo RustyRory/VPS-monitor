@@ -86,6 +86,13 @@ export async function listIncludes() {
     .map((path) => ({ name: path.split('/')[0], path }));
 }
 
+export async function composeDown(serviceName) {
+  try {
+    await execFile('docker', ['compose', '-f', MAIN_COMPOSE, 'stop', serviceName], { cwd: APPS_ROOT });
+    await execFile('docker', ['compose', '-f', MAIN_COMPOSE, 'rm', '-f', serviceName], { cwd: APPS_ROOT });
+  } catch { /* ignore if already stopped/absent */ }
+}
+
 export async function composeIsRunning(serviceName) {
   try {
     const { stdout } = await execFile('docker', ['compose', '-f', MAIN_COMPOSE, 'ps', '--quiet', serviceName], { cwd: APPS_ROOT });
