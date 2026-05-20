@@ -14,7 +14,6 @@ services:
       - /etc/nginx:/etc/nginx:ro
       - /etc/nginx/sites-available:/etc/nginx/sites-available
       - /etc/nginx/sites-enabled:/etc/nginx/sites-enabled
-      - /usr/sbin/nginx:/usr/sbin/nginx:ro
     env_file:
       - path: ../.env
         required: false
