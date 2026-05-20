@@ -16,7 +16,12 @@ export async function testConfig() {
 }
 
 export async function reload() {
-  await execFile('/usr/sbin/nginx', ['-s', 'reload']);
+  const { stdout } = await execFile('sh', ['-c',
+    "for f in /proc/[0-9]*/cmdline; do grep -qa 'nginx: master' \"$f\" && basename \"${f%/cmdline}\" && break; done",
+  ]);
+  const pid = stdout.trim();
+  if (!pid) throw new Error('nginx master process introuvable');
+  await execFile('kill', ['-HUP', pid]);
 }
 
 export async function readConfig() {
