@@ -2,7 +2,7 @@ import { readFile, writeFile, access } from 'fs/promises';
 import { join } from 'path';
 import { execFile as execFileCb } from 'child_process';
 import { promisify } from 'util';
-import { addInclude, removeInclude, listIncludes, getFirstServiceName, getAllServiceNames, composeUp, composeRebuild, composeDown, composeIsRunning } from './compose.js';
+import { addInclude, removeInclude, listIncludes, getFirstServiceName, getAllServiceNames, composeDown, composeIsRunning } from './compose.js';
 import { rm } from 'fs/promises';
 
 const execFile = promisify(execFileCb);

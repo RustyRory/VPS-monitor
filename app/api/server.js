@@ -8,7 +8,7 @@ import { dirname, join } from 'path';
 import { readFile, writeFile } from 'fs/promises';
 import { getContainers, restartContainer, stopContainer, startContainer, removeContainer, streamContainerLogs } from './services/docker.js';
 import { checkWebsites } from './services/http.js';
-import { testConfig, reload as reloadNginx, readConfig, writeConfig, parseApps, parseConfigMeta, addApp, removeApp } from './services/nginx.js';
+import { reload as reloadNginx, readConfig, writeConfig, parseApps, parseConfigMeta, addApp, removeApp } from './services/nginx.js';
 import { listApps, cloneApp, updateApp, deleteApp, getAppStatus } from './services/deploy.js';
 import { composeUp, composeRebuild, ensureInfraInclude } from './services/compose.js';
 

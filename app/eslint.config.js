@@ -47,10 +47,12 @@ export default [
         window: 'readonly',
         location: 'readonly',
         WebSocket: 'readonly',
+        confirm: 'readonly',
+        alert: 'readonly',
       },
     },
     rules: {
-      'no-unused-vars': ['warn', { varsIgnorePattern: '^(containerAction|logout|showLogs|closeLogs|showTab|saveAppsJson|nginxAddApp|nginxRemoveApp|updateDeployApp|promptClone|cloneNewApp)$' }],
+      'no-unused-vars': ['warn', { varsIgnorePattern: '^(containerAction|logout|showLogs|closeLogs|showTab|saveAppsJson|nginxAddApp|nginxRemoveApp|updateDeployApp|promptClone|cloneNewApp|removeContainer|deleteDeployApp)$' }],
     },
   },
 ];
