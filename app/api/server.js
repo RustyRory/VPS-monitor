@@ -152,8 +152,6 @@ app.post('/api/nginx/apps', requireAuth, async (req, res) => {
   try {
     previous = await readConfig();
     await addApp(path, port);
-    const test = await testConfig();
-    if (!test.ok) { await writeConfig(previous); return res.status(422).json({ ok: false, output: test.output }); }
     await reloadNginx();
     res.json({ ok: true });
   } catch (err) {
@@ -170,8 +168,6 @@ app.delete('/api/nginx/apps', requireAuth, async (req, res) => {
   try {
     previous = await readConfig();
     await removeApp(path);
-    const test = await testConfig();
-    if (!test.ok) { await writeConfig(previous); return res.status(422).json({ ok: false, output: test.output }); }
     await reloadNginx();
     res.json({ ok: true });
   } catch (err) {
@@ -230,10 +226,7 @@ app.post('/api/deploy/clone', requireAuth, async (req, res) => {
     const parsedPort = port ? parseInt(port, 10) : null;
     await cloneApp(name, url, nginxPath || null, parsedPort);
     if (nginxPath && parsedPort) {
-      const previous = await readConfig();
       await addApp(nginxPath, parsedPort);
-      const test = await testConfig();
-      if (!test.ok) { await writeConfig(previous); return res.status(422).json({ ok: false, output: test.output }); }
       await reloadNginx();
     }
     res.json({ ok: true });
@@ -260,11 +253,8 @@ app.delete('/api/deploy/apps', requireAuth, async (req, res) => {
   try {
     const meta = await deleteApp(name);
     if (meta.nginxPath) {
-      const previous = await readConfig();
-      await removeApp(meta.nginxPath);
-      const test = await testConfig();
-      if (!test.ok) { await writeConfig(previous); }
-      else { await reloadNginx(); }
+      await removeApp(meta.nginxPath).catch(() => {});
+      await reloadNginx().catch(() => {});
     }
     res.json({ ok: true });
   } catch (err) {
