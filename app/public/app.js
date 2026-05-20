@@ -178,6 +178,7 @@ async function nginxRemoveApp(path, btn) {
 async function nginxAddApp() {
   const path = document.getElementById('nginx-add-path').value.trim();
   const port = parseInt(document.getElementById('nginx-add-port').value, 10);
+  const stripPrefix = !document.getElementById('nginx-add-keep-prefix').checked;
   const statusEl = document.getElementById('nginx-status');
 
   if (!path.startsWith('/') || !path.endsWith('/')) {
@@ -193,7 +194,7 @@ async function nginxAddApp() {
   const res = await fetch('/api/nginx/apps', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path, port }),
+    body: JSON.stringify({ path, port, stripPrefix }),
   });
   const data = await res.json();
   if (res.ok) {
@@ -281,6 +282,7 @@ async function cloneNewApp() {
   const url = document.getElementById('clone-url').value.trim();
   const nginxPath = document.getElementById('clone-nginx-path').value.trim() || null;
   const port = document.getElementById('clone-nginx-port').value.trim() || null;
+  const stripPrefix = !document.getElementById('clone-keep-prefix').checked;
   const statusEl = document.getElementById('clone-status');
 
   if (!name || !url) { statusEl.textContent = '❌ Nom et URL requis'; return; }
@@ -290,7 +292,7 @@ async function cloneNewApp() {
   const res = await fetch('/api/deploy/clone', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, url, nginxPath, port: port ? parseInt(port, 10) : undefined }),
+    body: JSON.stringify({ name, url, nginxPath, port: port ? parseInt(port, 10) : undefined, stripPrefix }),
   });
   const data = await res.json();
   statusEl.textContent = res.ok ? `✅ ${name} déployé` : `❌ ${data.error}`;

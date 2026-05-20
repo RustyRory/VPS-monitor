@@ -52,6 +52,12 @@
             <input id="nginx-add-port" type="number" min="1" max="65535" placeholder="3007" />
             <button onclick="nginxAddApp()">Ajouter</button>
           </div>
+          <div class="clone-inputs">
+            <label style="font-size:.85rem;display:flex;align-items:center;gap:.4rem;cursor:pointer">
+              <input id="nginx-add-keep-prefix" type="checkbox" />
+              Conserver le préfixe <span style="color:var(--muted,#888)">(Next.js / apps avec basePath)</span>
+            </label>
+          </div>
           <div id="nginx-status" class="clone-status"></div>
         </div>
       </section>
@@ -70,6 +76,12 @@
           <div class="clone-inputs clone-inputs--nginx">
             <input id="clone-nginx-path" type="text" placeholder="Chemin nginx (ex: /sbv/) — vide si pas de web" />
             <input id="clone-nginx-port" type="number" min="1" max="65535" placeholder="Port (ex: 3001)" />
+          </div>
+          <div class="clone-inputs">
+            <label style="font-size:.85rem;display:flex;align-items:center;gap:.4rem;cursor:pointer">
+              <input id="clone-keep-prefix" type="checkbox" />
+              Conserver le préfixe <span style="color:var(--muted,#888)">(Next.js / apps avec basePath)</span>
+            </label>
           </div>
           <div class="clone-inputs">
             <button onclick="cloneNewApp()">Déployer</button>
