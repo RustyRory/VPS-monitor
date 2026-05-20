@@ -10,6 +10,7 @@ import { getContainers, restartContainer, stopContainer, startContainer, streamC
 import { checkWebsites } from './services/http.js';
 import { testConfig, reload as reloadNginx, readConfig, writeConfig, parseApps, parseConfigMeta, addApp, removeApp } from './services/nginx.js';
 import { listApps, cloneApp, updateApp, deleteApp, getAppStatus } from './services/deploy.js';
+import { composeUp, composeRebuild } from './services/compose.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -224,12 +225,13 @@ app.post('/api/deploy/clone', requireAuth, async (req, res) => {
   if (nginxPath && !port) return res.status(400).json({ error: 'port requis si nginxPath fourni' });
   try {
     const parsedPort = port ? parseInt(port, 10) : null;
-    await cloneApp(name, url, nginxPath || null, parsedPort);
+    const service = await cloneApp(name, url, nginxPath || null, parsedPort);
     if (nginxPath && parsedPort) {
       await addApp(nginxPath, parsedPort);
       await reloadNginx();
     }
-    res.json({ ok: true });
+    res.json({ ok: true, building: true });
+    composeUp(service).catch((err) => console.error(`[clone] build ${name} failed:`, err.message));
   } catch (err) {
     const status = ['Nom d\'app invalide', 'URL invalide'].includes(err.message) ? 400 : 500;
     res.status(status).json({ error: err.message });
@@ -240,8 +242,9 @@ app.post('/api/deploy/update', requireAuth, async (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: 'name requis' });
   try {
-    await updateApp(name);
-    res.json({ ok: true });
+    const service = await updateApp(name);
+    res.json({ ok: true, building: true });
+    composeRebuild(service).catch((err) => console.error(`[update] build ${name} failed:`, err.message));
   } catch (err) {
     res.status(err.message === 'Nom d\'app invalide' ? 400 : 500).json({ error: err.message });
   }

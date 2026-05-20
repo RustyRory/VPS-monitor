@@ -73,7 +73,7 @@ export async function cloneApp(name, url, nginxPath, nginxPort) {
   await writeRegistry(registry);
 
   await addInclude(name);
-  await composeUp(service);
+  return service;
 }
 
 export async function deleteApp(name) {
@@ -99,6 +99,5 @@ export async function updateApp(name) {
   safeName(name);
   const appPath = join(APPS_ROOT, name);
   await execFile('git', ['-C', appPath, 'pull']);
-  const service = await getFirstServiceName(name);
-  await composeRebuild(service);
+  return getFirstServiceName(name);
 }
