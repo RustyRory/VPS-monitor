@@ -227,7 +227,15 @@ app.post('/api/deploy/clone', requireAuth, async (req, res) => {
   if (!name || !url) return res.status(400).json({ error: 'name et url requis' });
   if (nginxPath && !port) return res.status(400).json({ error: 'port requis si nginxPath fourni' });
   try {
-    await cloneApp(name, url, nginxPath || null, port ? parseInt(port, 10) : null);
+    const parsedPort = port ? parseInt(port, 10) : null;
+    await cloneApp(name, url, nginxPath || null, parsedPort);
+    if (nginxPath && parsedPort) {
+      const previous = await readConfig();
+      await addApp(nginxPath, parsedPort);
+      const test = await testConfig();
+      if (!test.ok) { await writeConfig(previous); return res.status(422).json({ ok: false, output: test.output }); }
+      await reloadNginx();
+    }
     res.json({ ok: true });
   } catch (err) {
     const status = ['Nom d\'app invalide', 'URL invalide'].includes(err.message) ? 400 : 500;
