@@ -3,6 +3,7 @@ name: vps-monitor
 services:
   vps-monitor:
     build: ../app
+    container_name: vps-monitor
     restart: unless-stopped
     ports:
       - "127.0.0.1:3020:3000"
