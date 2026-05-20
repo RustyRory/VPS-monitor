@@ -346,15 +346,6 @@ docker logs <container> --follow   # comportement attendu
 
 ---
 
-### Étape 16 — Évolutions futures
-
-À planifier selon les besoins :
-
-- Alertes email quand un service tombe
-- Historique d'uptime (stockage en fichier ou SQLite)
-- Graphiques CPU / RAM via `dockerode.stats`
-- Support multi-serveurs
-
 ## Phase 5 — GitOps Dashboard
 
 ### Contexte & État actuel
@@ -728,13 +719,11 @@ docker compose up -d vps-monitor
 
 ---
 
-### Récapitulatif des fichiers à créer / modifier
+### Récapitulatif des fichiers à créer / modifier (plan initial)
 
 | Fichier | Action |
 |---------|--------|
 | `vps-monitor-app/` → `app/` | Renommer |
-| `nginx/sites-enabled/vps` | Créer (depuis vps-config) |
-| `apps/*/docker-compose.yml` | Créer (depuis vps-config) |
 | `app/api/services/git.js` | Créer |
 | `app/api/services/nginx.js` | Créer |
 | `app/api/services/deploy.js` | Créer |
@@ -742,8 +731,152 @@ docker compose up -d vps-monitor
 | `app/public/index.html` | Modifier (nouveaux onglets) |
 | `app/public/app.js` | Modifier (logique nouveaux onglets) |
 | `app/public/style.css` | Modifier (styles éditeur + déploiement) |
-| `.env.example` | Modifier (ajout GITHUB_TOKEN, VPSCONFIG_PATH) |
-| `README.md` | Réécrire |
-| `vps-config` (repo GitHub) | Archiver / supprimer |
+| `.env.example` | Modifier (VPSCONFIG_PATH) |
+
+---
+
+### Notes d'implémentation — écarts par rapport au plan
+
+#### `git.js` — non implémenté
+Le push git depuis le dashboard a été écarté. Les apps gèrent leur propre dépôt. vps-monitor se contente de `git clone` / `git pull`.
+
+#### `nginx.js` — implémenté différemment
+Pas d'éditeur de fichier nginx complet. À la place : ajout/suppression de blocs `location` via des fonctions dédiées (`addApp`, `removeApp`). La validation `nginx -t` a été retirée des routes — le binaire nginx du VPS (Ubuntu/glibc) ne peut pas s'exécuter dans le container Alpine (musl libc). nginx refuse le reload si la config est invalide, ce qui sert de filet de sécurité.
+
+#### `compose.js` — nouveau service (non prévu)
+Gère le fichier `/var/www/docker-compose.yml` global via des includes Docker Compose. Fonctions : `addInclude`, `removeInclude`, `listIncludes`, `composeUp`, `composeRebuild`, `composeDown`, `composeIsRunning`.
+
+#### `deploy.js` — `deleteApp` ajouté (non prévu)
+En plus des fonctions prévues, `deleteApp` : arrête le container (`composeDown`), retire l'include du compose global, supprime l'entrée dans `apps.json`, supprime le dossier `/var/www/<nom>`, et nettoie le bloc nginx si applicable.
+
+#### `apps.json` — registre de métadonnées
+Fichier JSON stockant les métadonnées des apps déployées (URL GitHub, chemin nginx, port). La source de vérité reste le compose global (includes) — `apps.json` enrichit uniquement l'affichage et permet la suppression propre du bloc nginx.
+
+#### Dockerfile — binaires requis
+```dockerfile
+RUN apk add --no-cache git docker-cli docker-cli-compose
+```
+- `git` : pour `git clone` et `git pull`
+- `docker-cli` : binaire Docker client
+- `docker-cli-compose` : plugin `docker compose` (v2)
+
+Le binaire nginx n'est **pas** monté depuis le host — incompatible Alpine/Ubuntu.
+
+#### `deployment/docker-compose.yml` — variables d'environnement
+```yaml
+environment:
+  BASE_URL: "http://<IP_VPS>"   # pour les health checks HTTP depuis le container
+```
+Sans `BASE_URL`, les checks se font sur `localhost:3000` (vps-monitor lui-même) au lieu de passer par nginx.
+
+#### Démarrage de vps-monitor
+Toujours utiliser le compose dédié, **pas** le compose global :
+```bash
+docker compose -f /var/www/vps-monitor/deployment/docker-compose.yml up -d
+```
+
+---
+
+## Guide — Ajouter une nouvelle application via le dashboard
+
+### Prérequis dans le repo de l'app
+
+Créer `deployment/docker-compose.yml` à la racine du repo :
+
+```yaml
+services:
+  nom-app:                          # doit correspondre au "Nom" saisi dans le dashboard
+    build: ..
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:PORT:PORT_INTERNE"
+```
+
+Le `Dockerfile` doit être à la racine du repo (référencé par `build: ..` depuis `deployment/`).
+
+Exemple pour une app Laravel sur le port 3088 :
+
+```yaml
+services:
+  cinemap-app:
+    build: ..
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3088:80"
+```
+
+> Si l'app est un bot Discord (pas de web) : omettre la section `ports` et laisser le champ "Chemin nginx" vide dans le dashboard.
+
+### Sur le dashboard — onglet Déploiement
+
+Remplir le formulaire "Déployer une nouvelle app" :
+
+| Champ | Exemple | Obligatoire |
+|---|---|---|
+| Nom | `cinemap-app` | ✅ (doit correspondre au nom du service dans le compose) |
+| URL | `https://github.com/RustyRory/mon-app.git` | ✅ |
+| Chemin nginx | `/cinemap-app/` | ❌ (vide si bot) |
+| Port | `3088` | ❌ (requis si chemin nginx) |
+
+Cliquer **Déployer** — vps-monitor va :
+1. `git clone` le repo dans `/var/www/<nom>/`
+2. Lire `<nom>/deployment/docker-compose.yml` pour récupérer le nom du service
+3. Ajouter l'include dans `/var/www/docker-compose.yml`
+4. `docker compose up -d <service>` (build inclus)
+5. Ajouter le bloc `location` dans `/etc/nginx/sites-available/vps` + reload
+
+### Vérification
+
+- Onglet **Monitoring** → le container apparaît en vert
+- Onglet **Configs** → nginx → la card `/cinemap-app/` est présente
+- `http://<IP>/cinemap-app/` répond
+
+### Mettre à jour une app
+
+Onglet **Déploiement** → bouton **Mettre à jour** sur la card de l'app.
+
+vps-monitor fait : `git pull` + `docker compose up -d --build <service>`.
+
+### Supprimer une app
+
+Onglet **Déploiement** → bouton **✕** sur la card de l'app (confirmation demandée).
+
+vps-monitor fait :
+1. `docker compose stop <service>` + `docker compose rm -f <service>`
+2. Retire l'include du compose global
+3. Supprime l'entrée dans `apps.json`
+4. Supprime `/var/www/<nom>/`
+5. Retire le bloc nginx + reload
+
+### CD automatique (GitHub Actions)
+
+Pour déclencher un redéploiement automatique à chaque push :
+
+```yaml
+- name: Trigger update via vps-monitor
+  run: |
+    curl -sf -c cookies.txt \
+      -X POST "${{ secrets.VPS_MONITOR_URL }}/auth/login" \
+      -H "Content-Type: application/json" \
+      -d '{"username":"${{ secrets.VPS_MONITOR_USER }}","password":"${{ secrets.VPS_MONITOR_PASS }}"}' \
+      | grep -q '"ok":true' || { echo "Login failed"; exit 1; }
+
+    curl -sf -b cookies.txt \
+      -X POST "${{ secrets.VPS_MONITOR_URL }}/api/deploy/update" \
+      -H "Content-Type: application/json" \
+      -d '{"name":"<nom-app>"}' \
+      | grep -q '"ok":true' || { echo "Update failed"; exit 1; }
+```
+
+Secrets GitHub requis : `VPS_MONITOR_URL`, `VPS_MONITOR_USER`, `VPS_MONITOR_PASS`.
+
+---
+
+## Phase 6 — Évolutions futures
+
+- Alertes email / Discord quand un service tombe
+- Historique d'uptime (stockage fichier ou SQLite)
+- Graphiques CPU / RAM via `dockerode.stats`
+- Support multi-serveurs
 
 ---
